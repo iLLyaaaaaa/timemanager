@@ -37,6 +37,7 @@ migrate_working_dir/
 **/.kotlin/
 **/local.properties
 **/key.properties
+/android/key.properties
 **/*.jks
 **/*.keystore
 *.apk

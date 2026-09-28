@@ -1,4 +1,4 @@
-package com.example.hello_app
+package com.illyaaaaaa.timemanager
 
 import io.flutter.embedding.android.FlutterActivity
 
