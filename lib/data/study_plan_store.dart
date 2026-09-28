@@ -16,38 +16,13 @@ class StudyPlanStore extends ChangeNotifier {
   final StudyPlanStorage? storage;
   final SettingsStore? settings;
   final DateTime Function() _now;
-  static const List<StudyPlan> _examplePlans = [
-    StudyPlan(
-      id: 'default_japanese',
-      name: '日语',
-      iconId: 'translate',
-      plannedMinutes: 60,
-    ),
-    StudyPlan(
-      id: 'default_english',
-      name: '英语',
-      iconId: 'language',
-      plannedMinutes: 60,
-    ),
-    StudyPlan(
-      id: 'default_math',
-      name: '数学',
-      iconId: 'calculate',
-      plannedMinutes: 120,
-    ),
-    StudyPlan(
-      id: 'default_programming',
-      name: '编程',
-      iconId: 'code',
-      plannedMinutes: 120,
-    ),
-  ];
-  final List<StudyPlan> _plans = [..._examplePlans];
+  final List<StudyPlan> _plans = [];
   final List<StudyRecord> _records = [];
   int _nextId = 1;
   String? _pendingSnapshot;
   Future<void>? _writeTask;
   Object? _lastWriteError;
+  bool _hasLoadError = false;
 
   static Future<StudyPlanStore> load({
     required StudyPlanStorage storage,
@@ -65,7 +40,9 @@ class StudyPlanStore extends ChangeNotifier {
       try {
         final decoded = jsonDecode(saved);
         if (decoded is! Map<String, dynamic> ||
-            (decoded['version'] != 1 && decoded['version'] != 2) ||
+            (decoded['version'] != 1 &&
+                decoded['version'] != 2 &&
+                decoded['version'] != 3) ||
             decoded['plans'] is! List) {
           throw const FormatException('Invalid saved plans');
         }
@@ -75,7 +52,7 @@ class StudyPlanStore extends ChangeNotifier {
                   StudyPlan.fromJson(Map<String, dynamic>.from(item as Map)),
             )
             .toList();
-        final loadedRecords = decoded['version'] == 2
+        final loadedRecords = decoded['version'] != 1
             ? (decoded['records'] as List)
                   .map(
                     (item) => StudyRecord.fromJson(
@@ -88,7 +65,7 @@ class StudyPlanStore extends ChangeNotifier {
           ..clear()
           ..addAll(loaded);
         store._records.addAll(loadedRecords);
-        needsWrite = decoded['version'] == 1;
+        needsWrite = decoded['version'] != 3;
         final nextId = decoded['nextId'];
         if (nextId is int && nextId > 0) store._nextId = nextId;
         while (store._plans.any(
@@ -97,9 +74,9 @@ class StudyPlanStore extends ChangeNotifier {
           store._nextId++;
         }
       } on FormatException {
-        // Keep the example plans if saved data has an unsupported format.
+        store._hasLoadError = true;
       } on TypeError {
-        // Keep the example plans if saved data has invalid field types.
+        store._hasLoadError = true;
       }
     }
     for (final plan in store._plans) {
@@ -112,6 +89,7 @@ class StudyPlanStore extends ChangeNotifier {
 
   List<StudyPlan> get plans => List.unmodifiable(_plans);
   List<StudyRecord> get records => List.unmodifiable(_records);
+  bool get hasLoadError => _hasLoadError;
 
   StudyPlan? planById(String id) {
     for (final plan in _plans) {
@@ -151,7 +129,7 @@ class StudyPlanStore extends ChangeNotifier {
   void addPlan({
     required String name,
     required String iconId,
-    required int plannedMinutes,
+    required int plannedSeconds,
   }) {
     refreshForToday();
     _plans.add(
@@ -159,7 +137,7 @@ class StudyPlanStore extends ChangeNotifier {
         id: 'custom_${_nextId++}',
         name: name,
         iconId: iconId,
-        plannedMinutes: plannedMinutes,
+        plannedSeconds: plannedSeconds,
       ),
     );
     _changed();
@@ -171,9 +149,9 @@ class StudyPlanStore extends ChangeNotifier {
     if (index == -1) return;
     final previous = _plans[index];
     final calculatedRemaining =
-        updated.plannedMinutes == previous.plannedMinutes
+        updated.plannedSeconds == previous.plannedSeconds
         ? previous.remainingSeconds
-        : updated.plannedMinutes * 60 - previous.studiedSeconds;
+        : updated.plannedSeconds - previous.studiedSeconds;
     final remaining = previous.hasStartedToday && calculatedRemaining > 0
         ? calculatedRemaining
         : 0;
@@ -188,9 +166,9 @@ class StudyPlanStore extends ChangeNotifier {
     _changed();
   }
 
-  void adjustRemainingMinutes(String id, int minutes) {
-    if (minutes <= 0 || minutes > 0x7fffffffffffffff ~/ 60) {
-      throw ArgumentError.value(minutes, 'minutes');
+  void adjustRemainingSeconds(String id, int seconds) {
+    if (seconds <= 0) {
+      throw ArgumentError.value(seconds, 'seconds');
     }
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == id);
@@ -198,7 +176,7 @@ class StudyPlanStore extends ChangeNotifier {
     final plan = _plans[index];
     _plans[index] = plan.withProgress(
       day: _today,
-      remainingSeconds: minutes * 60,
+      remainingSeconds: seconds,
       studiedSeconds: plan.studiedSeconds,
       hasStartedToday: true,
       isCompletedToday: false,
@@ -238,9 +216,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void clearAllData() {
-    _plans
-      ..clear()
-      ..addAll(_examplePlans);
+    _plans.clear();
     _records.clear();
     _nextId = 1;
     _changed();
@@ -254,7 +230,7 @@ class StudyPlanStore extends ChangeNotifier {
     if (plan.hasStartedToday) return;
     _plans[index] = plan.withProgress(
       day: _today,
-      remainingSeconds: plan.plannedMinutes * 60,
+      remainingSeconds: plan.plannedSeconds,
       studiedSeconds: 0,
       hasStartedToday: true,
       isCompletedToday: false,
@@ -287,7 +263,7 @@ class StudyPlanStore extends ChangeNotifier {
       id: '${plan.progressDay}_${plan.id}',
       planId: plan.id,
       date: plan.progressDay!,
-      plannedSeconds: plan.plannedMinutes * 60,
+      plannedSeconds: plan.plannedSeconds,
       studiedSeconds: plan.studiedSeconds,
     );
     final index = _records.indexWhere((item) => item.id == record.id);
@@ -311,9 +287,9 @@ class StudyPlanStore extends ChangeNotifier {
 
   void _scheduleWrite() {
     final target = storage;
-    if (target == null) return;
+    if (target == null || _hasLoadError) return;
     _pendingSnapshot = jsonEncode({
-      'version': 2,
+      'version': 3,
       'nextId': _nextId,
       'plans': _plans.map((plan) => plan.toJson()).toList(),
       'records': _records.map((record) => record.toJson()).toList(),

@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../data/study_icon_catalog.dart';
 import '../models/study_plan.dart';
+import '../utils/study_duration.dart';
 
 class StudyPlanCard extends StatelessWidget {
-  const StudyPlanCard({
-    super.key,
-    required this.plan,
-    required this.onStart,
-    this.showSeconds = true,
-  });
+  const StudyPlanCard({super.key, required this.plan, required this.onStart});
 
   final StudyPlan plan;
   final VoidCallback onStart;
-  final bool showSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +16,8 @@ class StudyPlanCard extends StatelessWidget {
     final status = plan.isCompletedToday
         ? '今日计划已完成'
         : plan.hasStartedToday
-        ? _remainingText(plan.remainingSeconds)
-        : '今日计划 ${plan.plannedMinutes} 分钟';
+        ? '今日剩余 ${formatStudyDuration(plan.remainingSeconds)}'
+        : '今日计划 ${formatStudyDuration(plan.plannedSeconds)}';
 
     return Card(
       key: ValueKey('plan_card_${plan.id}'),
@@ -80,7 +75,7 @@ class StudyPlanCard extends StatelessWidget {
                       if (plan.hasStartedToday) ...[
                         const SizedBox(height: 2),
                         Text(
-                          '计划 ${plan.plannedMinutes} 分钟',
+                          '计划 ${formatStudyDuration(plan.plannedSeconds)}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -94,13 +89,5 @@ class StudyPlanCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _remainingText(int seconds) {
-    final minutes = seconds ~/ 60;
-    final extraSeconds = seconds % 60;
-    if (!showSeconds) return '今日剩余 ${(seconds + 59) ~/ 60} 分钟';
-    if (extraSeconds == 0) return '今日剩余 $minutes 分钟';
-    return '今日剩余 $minutes 分 $extraSeconds 秒';
   }
 }

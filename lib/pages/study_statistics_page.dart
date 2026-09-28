@@ -3,23 +3,19 @@ import 'package:flutter/material.dart';
 import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../models/study_plan.dart';
+import '../utils/study_duration.dart';
 
 class StudyStatisticsPage extends StatelessWidget {
-  const StudyStatisticsPage({
-    super.key,
-    required this.store,
-    this.showSeconds = true,
-  });
+  const StudyStatisticsPage({super.key, required this.store});
 
   final StudyPlanStore store;
-  final bool showSeconds;
 
   @override
   Widget build(BuildContext context) {
     final plans = store.plans;
     final plannedSeconds = plans.fold<int>(
       0,
-      (sum, plan) => sum + plan.plannedMinutes * 60,
+      (sum, plan) => sum + plan.plannedSeconds,
     );
     final studiedSeconds = plans.fold<int>(
       0,
@@ -29,9 +25,7 @@ class StudyStatisticsPage extends StatelessWidget {
       0,
       (sum, plan) =>
           sum +
-          (plan.hasStartedToday
-              ? plan.remainingSeconds
-              : plan.plannedMinutes * 60),
+          (plan.hasStartedToday ? plan.remainingSeconds : plan.plannedSeconds),
     );
     final completion = _completion(studiedSeconds, plannedSeconds);
     final colors = Theme.of(context).colorScheme;
@@ -59,9 +53,9 @@ class StudyStatisticsPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('今日计划总时长：${_duration(plannedSeconds, showSeconds)}'),
-                Text('今日已学习：${_duration(studiedSeconds, showSeconds)}'),
-                Text('今日剩余：${_duration(remainingSeconds, showSeconds)}'),
+                Text('今日计划总时长：${formatStudyDuration(plannedSeconds)}'),
+                Text('今日已学习：${formatStudyDuration(studiedSeconds)}'),
+                Text('今日剩余：${formatStudyDuration(remainingSeconds)}'),
                 const SizedBox(height: 12),
                 Text(
                   '今日完成率：${_percent(completion)}',
@@ -93,7 +87,7 @@ class StudyStatisticsPage extends StatelessWidget {
           )
         else
           for (final plan in plans) ...[
-            _PlanStatisticsCard(plan: plan, showSeconds: showSeconds),
+            _PlanStatisticsCard(plan: plan),
             const SizedBox(height: 12),
           ],
       ],
@@ -102,14 +96,13 @@ class StudyStatisticsPage extends StatelessWidget {
 }
 
 class _PlanStatisticsCard extends StatelessWidget {
-  const _PlanStatisticsCard({required this.plan, required this.showSeconds});
+  const _PlanStatisticsCard({required this.plan});
 
   final StudyPlan plan;
-  final bool showSeconds;
 
   @override
   Widget build(BuildContext context) {
-    final plannedSeconds = plan.plannedMinutes * 60;
+    final plannedSeconds = plan.plannedSeconds;
     final remainingSeconds = plan.hasStartedToday
         ? plan.remainingSeconds
         : plannedSeconds;
@@ -142,12 +135,12 @@ class _PlanStatisticsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text('计划：${_duration(plannedSeconds, showSeconds)}'),
-            Text('已学习：${_duration(plan.studiedSeconds, showSeconds)}'),
-            Text('剩余：${_duration(remainingSeconds, showSeconds)}'),
+            Text('计划：${formatStudyDuration(plannedSeconds)}'),
+            Text('已学习：${formatStudyDuration(plan.studiedSeconds)}'),
+            Text('剩余：${formatStudyDuration(remainingSeconds)}'),
             if (plan.studiedSeconds > plannedSeconds)
               Text(
-                '超出计划：${_duration(plan.studiedSeconds - plannedSeconds, showSeconds)}',
+                '超出计划：${formatStudyDuration(plan.studiedSeconds - plannedSeconds)}',
               ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -170,12 +163,4 @@ String _percent(double value) {
   final percentage = value * 100;
   final decimals = percentage == percentage.roundToDouble() ? 0 : 1;
   return '${percentage.toStringAsFixed(decimals)}%';
-}
-
-String _duration(int seconds, bool showSeconds) {
-  final minutes = seconds ~/ 60;
-  final extraSeconds = seconds % 60;
-  if (!showSeconds) return '$minutes 分钟';
-  if (extraSeconds == 0) return '$minutes 分钟';
-  return '$minutes 分 $extraSeconds 秒';
 }

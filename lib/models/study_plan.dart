@@ -3,7 +3,7 @@ class StudyPlan {
     required this.id,
     required this.name,
     required this.iconId,
-    required this.plannedMinutes,
+    required this.plannedSeconds,
     this.progressDay,
     this.remainingSeconds = 0,
     this.studiedSeconds = 0,
@@ -14,19 +14,19 @@ class StudyPlan {
   final String id;
   final String name;
   final String iconId;
-  final int plannedMinutes;
+  final int plannedSeconds;
   final String? progressDay;
   final int remainingSeconds;
   final int studiedSeconds;
   final bool hasStartedToday;
   final bool isCompletedToday;
 
-  StudyPlan copyWith({String? name, String? iconId, int? plannedMinutes}) {
+  StudyPlan copyWith({String? name, String? iconId, int? plannedSeconds}) {
     return StudyPlan(
       id: id,
       name: name ?? this.name,
       iconId: iconId ?? this.iconId,
-      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
+      plannedSeconds: plannedSeconds ?? this.plannedSeconds,
       progressDay: progressDay,
       remainingSeconds: remainingSeconds,
       studiedSeconds: studiedSeconds,
@@ -46,7 +46,7 @@ class StudyPlan {
       id: id,
       name: name,
       iconId: iconId,
-      plannedMinutes: plannedMinutes,
+      plannedSeconds: plannedSeconds,
       progressDay: day,
       remainingSeconds: remainingSeconds,
       studiedSeconds: studiedSeconds,
@@ -59,7 +59,7 @@ class StudyPlan {
     'id': id,
     'name': name,
     'iconId': iconId,
-    'plannedMinutes': plannedMinutes,
+    'plannedSeconds': plannedSeconds,
     'progressDay': progressDay,
     'remainingSeconds': remainingSeconds,
     'studiedSeconds': studiedSeconds,
@@ -71,21 +71,26 @@ class StudyPlan {
     final id = json['id'];
     final name = json['name'];
     final iconId = json['iconId'];
-    final minutes = json['plannedMinutes'];
+    final seconds = json['plannedSeconds'];
+    final legacyMinutes = json['plannedMinutes'];
     final storedRemainingSeconds = json['remainingSeconds'];
     final storedStudiedSeconds = json['studiedSeconds'];
     if (id is! String ||
         name is! String ||
         iconId is! String ||
-        minutes is! int ||
-        minutes <= 0) {
+        (seconds is! int || seconds <= 0) &&
+            (legacyMinutes is! int ||
+                legacyMinutes <= 0 ||
+                legacyMinutes > 0x7fffffffffffffff ~/ 60)) {
       throw const FormatException('Invalid study plan');
     }
     return StudyPlan(
       id: id,
       name: name,
       iconId: iconId,
-      plannedMinutes: minutes,
+      plannedSeconds: seconds is int && seconds > 0
+          ? seconds
+          : (legacyMinutes as int) * 60,
       progressDay: json['progressDay'] is String
           ? json['progressDay'] as String
           : null,

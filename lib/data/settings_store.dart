@@ -14,11 +14,14 @@ class SharedPreferencesSettingsStorage implements AppSettingsStorage {
   SharedPreferencesSettingsStorage({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
 
-  static const _key = 'app_settings_v1';
+  static const _key = 'app_settings_v2';
+  static const _legacyKey = 'app_settings_v1';
   final SharedPreferencesAsync _preferences;
 
   @override
-  Future<String?> read() => _preferences.getString(_key);
+  Future<String?> read() async =>
+      await _preferences.getString(_key) ??
+      await _preferences.getString(_legacyKey);
 
   @override
   Future<void> write(String value) => _preferences.setString(_key, value);
@@ -41,10 +44,12 @@ class SettingsStore extends ChangeNotifier {
     try {
       final decoded = jsonDecode(saved);
       if (decoded is Map<String, dynamic>) {
-        return SettingsStore(
+        final store = SettingsStore(
           storage: storage,
           settings: AppSettings.fromJson(decoded),
         );
+        store._scheduleWrite();
+        return store;
       }
     } on FormatException {
       // Keep defaults when a saved value is malformed.

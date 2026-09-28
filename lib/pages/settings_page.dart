@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
 import '../data/study_plan_store.dart';
+import '../utils/study_duration.dart';
+import '../widgets/study_duration_input.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, required this.settings, required this.plans});
@@ -72,9 +74,9 @@ class SettingsPage extends StatelessWidget {
     await _saveSettings(context);
   }
 
-  Future<void> _chooseDefaultMinutes(BuildContext context) async {
-    var input = settings.settings.defaultPlanMinutes.toString();
+  Future<void> _chooseDefaultDuration(BuildContext context) async {
     final formKey = GlobalKey<FormState>();
+    final durationKey = GlobalKey<StudyDurationInputState>();
     final selected = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -82,24 +84,10 @@ class SettingsPage extends StatelessWidget {
         scrollable: true,
         content: Form(
           key: formKey,
-          child: TextFormField(
-            key: const ValueKey('default_plan_minutes'),
-            initialValue: input,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '默认时长',
-              suffixText: '分钟',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) => input = value,
-            validator: (value) {
-              final number = int.tryParse(value?.trim() ?? '');
-              return number == null ||
-                      number <= 0 ||
-                      number > 0x7fffffffffffffff ~/ 60
-                  ? '请输入大于 0 的整数分钟数'
-                  : null;
-            },
+          child: StudyDurationInput(
+            key: durationKey,
+            initialSeconds: settings.settings.defaultPlanSeconds,
+            label: '默认时长',
           ),
         ),
         actions: [
@@ -110,7 +98,10 @@ class SettingsPage extends StatelessWidget {
           FilledButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                Navigator.pop(dialogContext, int.parse(input.trim()));
+                Navigator.pop(
+                  dialogContext,
+                  durationKey.currentState!.totalSeconds,
+                );
               }
             },
             child: const Text('保存'),
@@ -119,7 +110,7 @@ class SettingsPage extends StatelessWidget {
       ),
     );
     if (selected == null || !context.mounted) return;
-    settings.update(settings.settings.copyWith(defaultPlanMinutes: selected));
+    settings.update(settings.settings.copyWith(defaultPlanSeconds: selected));
     await _saveSettings(context);
   }
 
@@ -229,15 +220,6 @@ class SettingsPage extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _chooseTheme(context),
           ),
-          SwitchListTile(
-            title: const Text('显示秒数'),
-            subtitle: const Text('计时与进度显示精确到秒'),
-            value: value.showSeconds,
-            onChanged: (enabled) {
-              settings.update(value.copyWith(showSeconds: enabled));
-              _saveSettings(context);
-            },
-          ),
         ]),
         _section(context, '计时', [
           SwitchListTile(
@@ -265,9 +247,9 @@ class SettingsPage extends StatelessWidget {
         _section(context, '计划', [
           ListTile(
             title: const Text('新增计划默认时长'),
-            subtitle: Text('${value.defaultPlanMinutes} 分钟'),
+            subtitle: Text(formatStudyDuration(value.defaultPlanSeconds)),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => _chooseDefaultMinutes(context),
+            onTap: () => _chooseDefaultDuration(context),
           ),
           SwitchListTile(
             title: const Text('删除计划前确认'),

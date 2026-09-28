@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
+import '../utils/study_duration.dart';
 import '../widgets/study_plan_card.dart';
 import 'plan_management_page.dart';
 import 'settings_page.dart';
@@ -74,10 +75,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
         ),
         body: switch (_selectedIndex) {
           0 => _buildHome(context),
-          1 => StudyStatisticsPage(
-            store: widget.store,
-            showSeconds: _settings.settings.showSeconds,
-          ),
+          1 => StudyStatisticsPage(store: widget.store),
           _ => SettingsPage(settings: _settings, plans: widget.store),
         },
         bottomNavigationBar: NavigationBar(
@@ -111,9 +109,9 @@ class _StudyHomePageState extends State<StudyHomePage> {
   Widget _buildHome(BuildContext context) {
     final plans = widget.store.plans;
     final colors = Theme.of(context).colorScheme;
-    final totalMinutes = plans.fold<int>(
+    final totalSeconds = plans.fold<int>(
       0,
-      (total, plan) => total + plan.plannedMinutes,
+      (total, plan) => total + plan.plannedSeconds,
     );
 
     return ListView(
@@ -137,7 +135,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                '今天有 ${plans.length} 项学习计划 · 共 $totalMinutes 分钟',
+                '今天有 ${plans.length} 项学习计划 · 共 ${formatStudyDuration(totalSeconds)}',
                 style: TextStyle(color: colors.onPrimaryContainer),
               ),
             ],
@@ -157,18 +155,16 @@ class _StudyHomePageState extends State<StudyHomePage> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                '还没有计划，点击右上角“管理计划”来新增。',
+                widget.store.hasLoadError
+                    ? '计划数据读取失败，请先检查本地数据，避免覆盖旧记录。'
+                    : '还没有学习计划，点击右上角“管理计划”新增。',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
           )
         else
           for (final plan in plans) ...[
-            StudyPlanCard(
-              plan: plan,
-              showSeconds: _settings.settings.showSeconds,
-              onStart: () => _startStudy(plan),
-            ),
+            StudyPlanCard(plan: plan, onStart: () => _startStudy(plan)),
             const SizedBox(height: 12),
           ],
       ],

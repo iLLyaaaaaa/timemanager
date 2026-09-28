@@ -6,6 +6,8 @@ import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
+import '../utils/study_duration.dart';
+import '../widgets/study_duration_input.dart';
 
 class StudyTimerPage extends StatefulWidget {
   const StudyTimerPage({
@@ -99,10 +101,10 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     if (plan == null) return;
     final currentSeconds = plan.hasStartedToday
         ? plan.remainingSeconds
-        : plan.plannedMinutes * 60;
-    var input = '';
+        : plan.plannedSeconds;
     final formKey = GlobalKey<FormState>();
-    final minutes = await showDialog<int>(
+    final durationKey = GlobalKey<StudyDurationInputState>();
+    final seconds = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('调整时间'),
@@ -113,30 +115,12 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('当前剩余 ${_formatTime(currentSeconds, remaining: true)}'),
+              Text('当前剩余 ${formatStudyDuration(currentSeconds)}'),
               const SizedBox(height: 16),
-              TextFormField(
-                key: const ValueKey('adjust_minutes'),
-                onChanged: (value) => input = value,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '新的剩余时间',
-                  suffixText: '分钟',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (text) {
-                  if (text == null || text.trim().isEmpty) {
-                    return '请输入剩余分钟数';
-                  }
-                  final value = int.tryParse(text.trim());
-                  if (value == null ||
-                      value <= 0 ||
-                      value > 0x7fffffffffffffff ~/ 60) {
-                    return '请输入大于 0 的整数分钟数';
-                  }
-                  return null;
-                },
+              StudyDurationInput(
+                key: durationKey,
+                initialSeconds: currentSeconds,
+                label: '新的剩余时间',
               ),
             ],
           ),
@@ -149,7 +133,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
           FilledButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                Navigator.of(dialogContext).pop(int.parse(input.trim()));
+                Navigator.of(dialogContext)
+                    .pop(durationKey.currentState!.totalSeconds);
               }
             },
             child: const Text('保存'),
@@ -157,8 +142,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
         ],
       ),
     );
-    if (!mounted || minutes == null) return;
-    widget.store.adjustRemainingMinutes(widget.planId, minutes);
+    if (!mounted || seconds == null) return;
+    widget.store.adjustRemainingSeconds(widget.planId, seconds);
     final saved = await widget.store.flush();
     if (!saved && mounted) {
       ScaffoldMessenger.of(context)
@@ -190,16 +175,6 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     super.dispose();
   }
 
-  String _formatTime(int seconds, {bool remaining = false}) {
-    if (widget.settings?.settings.showSeconds == false) {
-      final minutes = remaining ? (seconds + 59) ~/ 60 : seconds ~/ 60;
-      return '$minutes 分钟';
-    }
-    final minutes = seconds ~/ 60;
-    final extraSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${extraSeconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -226,7 +201,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   Widget _buildTimer(BuildContext context, StudyPlan plan) {
     final accent = Theme.of(context).colorScheme.primary;
     final completed = plan.isCompletedToday;
-    final totalSeconds = plan.plannedMinutes * 60;
+    final totalSeconds = plan.plannedSeconds;
     final remainingSeconds = plan.hasStartedToday
         ? plan.remainingSeconds
         : totalSeconds;
@@ -236,14 +211,6 @@ class _StudyTimerPageState extends State<StudyTimerPage>
         title: const Text('学习计时'),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        actions: [
-          TextButton.icon(
-            onPressed: _isLeaving ? null : _adjustTime,
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('调整时间'),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -271,7 +238,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             ),
             const SizedBox(height: 6),
             Text(
-              '今日计划总时长 ${plan.plannedMinutes} 分钟',
+              '今日计划总时长 ${formatStudyDuration(plan.plannedSeconds)}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 32),
@@ -302,12 +269,9 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _formatTime(remainingSeconds, remaining: true),
+                          formatStudyDuration(remainingSeconds),
                           style: TextStyle(
-                            fontSize:
-                                widget.settings?.settings.showSeconds == false
-                                ? 36
-                                : 48,
+                            fontSize: 44,
                             fontWeight: FontWeight.bold,
                             color: accent,
                           ),
@@ -323,7 +287,37 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
+            if (!completed)
+              SizedBox(
+                height: 60,
+                child: FilledButton.icon(
+                  onPressed: _isLeaving
+                      ? null
+                      : _timer == null
+                      ? _start
+                      : _pause,
+                  icon: Icon(
+                    _timer == null
+                        ? Icons.play_arrow_rounded
+                        : Icons.pause_rounded,
+                  ),
+                  label: Text(
+                    _timer == null ? '开始' : '暂停',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _isLeaving ? null : _adjustTime,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('调整时间'),
+            ),
+            const SizedBox(height: 24),
             Card(
               margin: EdgeInsets.zero,
               elevation: 0,
@@ -338,7 +332,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                   children: [
                     const Text('已学习时间'),
                     Text(
-                      _formatTime(plan.studiedSeconds),
+                      formatStudyDuration(plan.studiedSeconds),
                       style: Theme.of(context).textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
@@ -346,24 +340,6 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 ),
               ),
             ),
-            const SizedBox(height: 28),
-            if (!completed)
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isLeaving
-                      ? null
-                      : _timer == null
-                      ? _start
-                      : _pause,
-                  icon: Icon(
-                    _timer == null
-                        ? Icons.play_arrow_rounded
-                        : Icons.pause_rounded,
-                  ),
-                  label: Text(_timer == null ? '开始' : '暂停'),
-                ),
-              ),
           ],
         ),
       ),

@@ -4,6 +4,7 @@ import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
+import '../utils/study_duration.dart';
 import 'plan_edit_page.dart';
 
 class PlanManagementPage extends StatefulWidget {
@@ -122,7 +123,9 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 4),
-                            Text('每日计划 ${plan.plannedMinutes} 分钟'),
+                            Text(
+                              '每日计划 ${formatStudyDuration(plan.plannedSeconds)}',
+                            ),
                           ],
                         ),
                       ),

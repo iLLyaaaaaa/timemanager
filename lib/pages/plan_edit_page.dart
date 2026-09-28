@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
+import '../widgets/study_duration_input.dart';
 import '../widgets/study_icon_picker.dart';
 
 class PlanEditPage extends StatefulWidget {
@@ -24,25 +25,19 @@ class PlanEditPage extends StatefulWidget {
 class _PlanEditPageState extends State<PlanEditPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _minutesController;
+  final _durationKey = GlobalKey<StudyDurationInputState>();
   late String _selectedIconId;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.plan?.name ?? '');
-    _minutesController = TextEditingController(
-      text:
-          widget.plan?.plannedMinutes.toString() ??
-          (widget.settings?.settings.defaultPlanMinutes ?? 60).toString(),
-    );
     _selectedIconId = widget.plan?.iconId ?? 'category';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _minutesController.dispose();
     super.dispose();
   }
 
@@ -50,20 +45,20 @@ class _PlanEditPageState extends State<PlanEditPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
-    final minutes = int.parse(_minutesController.text.trim());
+    final seconds = _durationKey.currentState!.totalSeconds!;
     final existing = widget.plan;
     if (existing == null) {
       widget.store.addPlan(
         name: name,
         iconId: _selectedIconId,
-        plannedMinutes: minutes,
+        plannedSeconds: seconds,
       );
     } else {
       widget.store.updatePlan(
         existing.copyWith(
           name: name,
           iconId: _selectedIconId,
-          plannedMinutes: minutes,
+          plannedSeconds: seconds,
         ),
       );
     }
@@ -98,26 +93,13 @@ class _PlanEditPageState extends State<PlanEditPage> {
                   value == null || value.trim().isEmpty ? '请输入计划名称' : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              key: const ValueKey('plan_minutes'),
-              controller: _minutesController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '每日计划时长',
-                suffixText: '分钟',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.isEmpty) return '请输入计划时长';
-                final minutes = int.tryParse(text);
-                if (minutes == null ||
-                    minutes <= 0 ||
-                    minutes > 0x7fffffffffffffff ~/ 60) {
-                  return '请输入大于 0 的整数分钟数';
-                }
-                return null;
-              },
+            StudyDurationInput(
+              key: _durationKey,
+              initialSeconds:
+                  widget.plan?.plannedSeconds ??
+                  widget.settings?.settings.defaultPlanSeconds ??
+                  3600,
+              label: '每日计划时长',
             ),
             const SizedBox(height: 24),
             StudyIconPicker(
