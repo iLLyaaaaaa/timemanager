@@ -10,6 +10,10 @@ TimeManager 是一个仍在开发中的 Flutter 学习时间与计划管理 App�
 - 查看今日学习统计与各计划完成率
 - 使用本地存储保留计划、进度、学习记录和设置
 
+## 下载
+
+Android APK 通过 GitHub Releases 提供：[下载最新版 Release](https://github.com/iLLyaaaaaa/timemanager/releases/latest)。
+
 ## 本地运行
 
 安装 Flutter 与 Android 开发环境后，在项目目录执行：
