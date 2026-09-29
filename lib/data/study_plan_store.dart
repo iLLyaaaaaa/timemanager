@@ -195,6 +195,23 @@ class StudyPlanStore extends ChangeNotifier {
     _changed();
   }
 
+  int setBackgroundPauseForPlans(Set<String> ids, bool enabled) {
+    if (ids.isEmpty) return 0;
+    refreshForToday();
+    var matched = 0;
+    var changed = false;
+    for (var index = 0; index < _plans.length; index++) {
+      final plan = _plans[index];
+      if (!ids.contains(plan.id)) continue;
+      matched++;
+      if (plan.pauseWhenBackgrounded == enabled) continue;
+      _plans[index] = plan.copyWith(pauseWhenBackgrounded: enabled);
+      changed = true;
+    }
+    if (changed) _changed();
+    return matched;
+  }
+
   void adjustRemainingSeconds(String id, int seconds) {
     if (seconds <= 0) {
       throw ArgumentError.value(seconds, 'seconds');

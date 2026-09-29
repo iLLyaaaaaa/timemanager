@@ -110,6 +110,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backgroundPause => 'Auto-pause in Background';
 
   @override
+  String get enableBackgroundPause => 'Enable background auto-pause';
+
+  @override
+  String get disableBackgroundPause => 'Disable background auto-pause';
+
+  @override
   String get addPlan => 'Add Plan';
 
   @override
@@ -481,6 +487,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String bulkDeleteConfirm(int count) {
     return 'Delete the $count selected plans?';
+  }
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String backgroundPauseEnabledCount(int count) {
+    return 'Background auto-pause enabled for $count plans.';
+  }
+
+  @override
+  String backgroundPauseDisabledCount(int count) {
+    return 'Background auto-pause disabled for $count plans.';
   }
 
   @override

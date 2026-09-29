@@ -153,6 +153,29 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     }
   }
 
+  Future<void> _setSelectedBackgroundPause(bool enabled) async {
+    final ids = widget.store.plans
+        .where((plan) => _selectedIds.contains(plan.id))
+        .map((plan) => plan.id)
+        .toSet();
+    if (ids.isEmpty) return;
+    final count = widget.store.setBackgroundPauseForPlans(ids, enabled);
+    final saved = await widget.store.flush();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          !saved
+              ? l10n.timerSettingSaveFailed
+              : enabled
+              ? l10n.backgroundPauseEnabledCount(count)
+              : l10n.backgroundPauseDisabledCount(count),
+        ),
+      ),
+    );
+  }
+
   Future<void> _deletePlan(StudyPlan plan) async {
     final confirmFirst = _settings.settings.confirmBeforeDelete;
     if (confirmFirst) {
@@ -253,15 +276,13 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                   child: Column(
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (_bulkMode)
-                            Checkbox(
-                              key: ValueKey('select_plan_${plan.id}'),
-                              value: _selectedIds.contains(plan.id),
-                              onChanged: (_) => _toggleSelection(plan.id),
-                            )
-                          else
-                            StudyPlanIcon(plan: plan, color: colors.primary),
+                          StudyPlanIcon(
+                            plan: plan,
+                            tileSize: 80,
+                            color: colors.primary,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -269,7 +290,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                               children: [
                                 Text(
                                   plan.name,
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context)
                                       .textTheme
@@ -280,24 +301,49 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                   AppLocalizations.of(context)!.dailyPlanValue(
                                     formatStudyDuration(plan.plannedSeconds),
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: _bulkMode
+                                      ? [
+                                          Checkbox(
+                                            key: ValueKey(
+                                              'select_plan_${plan.id}',
+                                            ),
+                                            value: _selectedIds.contains(
+                                              plan.id,
+                                            ),
+                                            onChanged: (_) =>
+                                                _toggleSelection(plan.id),
+                                          ),
+                                        ]
+                                      : [
+                                          IconButton(
+                                            onPressed: () => _openEditor(plan),
+                                            tooltip: AppLocalizations.of(
+                                              context,
+                                            )!.editPlanTooltip(plan.name),
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () => _deletePlan(plan),
+                                            tooltip: AppLocalizations.of(
+                                              context,
+                                            )!.deletePlanTooltip(plan.name),
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                            ),
+                                          ),
+                                        ],
                                 ),
                               ],
                             ),
                           ),
-                          if (!_bulkMode) ...[
-                            IconButton(
-                              onPressed: () => _openEditor(plan),
-                              tooltip: AppLocalizations.of(context)!
-                                  .editPlanTooltip(plan.name),
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
-                            IconButton(
-                              onPressed: () => _deletePlan(plan),
-                              tooltip: AppLocalizations.of(context)!
-                                  .deletePlanTooltip(plan.name),
-                              icon: const Icon(Icons.delete_outline_rounded),
-                            ),
-                          ],
                         ],
                       ),
                       if (!_bulkMode) ...[
@@ -330,31 +376,77 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
               label: Text(AppLocalizations.of(context)!.addPlan),
             ),
       bottomNavigationBar: _bulkMode
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => _toggleAll(widget.store.plans),
-                      child: Text(
-                        _selectedIds.length == widget.store.plans.length
-                            ? AppLocalizations.of(context)!.deselectAll
-                            : AppLocalizations.of(context)!.selectAll,
-                      ),
+          ? AnimatedBuilder(
+              animation: widget.store,
+              builder: (context, _) {
+                final plans = widget.store.plans;
+                final selectedCount = plans
+                    .where((plan) => _selectedIds.contains(plan.id))
+                    .length;
+                final l10n = AppLocalizations.of(context)!;
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(l10n.selectedCount(selectedCount)),
+                            ),
+                            TextButton(
+                              onPressed: () => _toggleAll(plans),
+                              child: Text(
+                                selectedCount == plans.length
+                                    ? l10n.deselectAll
+                                    : l10n.selectAll,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                key: const ValueKey(
+                                  'bulk_enable_background_pause',
+                                ),
+                                onPressed: selectedCount == 0
+                                    ? null
+                                    : () => _setSelectedBackgroundPause(true),
+                                icon: const Icon(Icons.pause_circle_outline),
+                                label: Text(l10n.enableBackgroundPause),
+                              ),
+                              OutlinedButton.icon(
+                                key: const ValueKey(
+                                  'bulk_disable_background_pause',
+                                ),
+                                onPressed: selectedCount == 0
+                                    ? null
+                                    : () => _setSelectedBackgroundPause(false),
+                                icon: const Icon(Icons.play_circle_outline),
+                                label: Text(l10n.disableBackgroundPause),
+                              ),
+                              FilledButton.icon(
+                                onPressed: selectedCount == 0
+                                    ? null
+                                    : _deleteSelected,
+                                icon: const Icon(Icons.delete_outline_rounded),
+                                label: Text(l10n.deleteSelected(selectedCount)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      label: Text(
-                        AppLocalizations.of(context)!
-                            .deleteSelected(_selectedIds.length),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             )
           : null,
     );

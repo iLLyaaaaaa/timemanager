@@ -290,6 +290,18 @@ abstract class AppLocalizations {
   /// **'Auto-pause in Background'**
   String get backgroundPause;
 
+  /// No description provided for @enableBackgroundPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable background auto-pause'**
+  String get enableBackgroundPause;
+
+  /// No description provided for @disableBackgroundPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable background auto-pause'**
+  String get disableBackgroundPause;
+
   /// No description provided for @addPlan.
   ///
   /// In en, this message translates to:
@@ -997,6 +1009,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete the {count} selected plans?'**
   String bulkDeleteConfirm(int count);
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @backgroundPauseEnabledCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Background auto-pause enabled for {count} plans.'**
+  String backgroundPauseEnabledCount(int count);
+
+  /// No description provided for @backgroundPauseDisabledCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Background auto-pause disabled for {count} plans.'**
+  String backgroundPauseDisabledCount(int count);
 
   /// No description provided for @deletePlanConfirm.
   ///

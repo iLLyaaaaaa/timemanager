@@ -13,6 +13,7 @@ import 'package:hello_app/pages/study_statistics_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/utils/study_duration.dart';
 import 'package:hello_app/services/screen_state_service.dart';
+import 'package:hello_app/widgets/study_plan_icon.dart';
 
 class _UnlockedScreen extends ScreenStateService {
   @override
@@ -348,6 +349,103 @@ void main() {
     expect(reopened.planById(secondId)!.pauseWhenBackgrounded, isFalse);
     expect(reopened.planById(firstId)!.studiedSeconds, 1);
     expect(reopened.records.single.planId, firstId);
+  });
+
+  testWidgets(
+    'bulk background pause updates only selected plans and persists',
+    (tester) async {
+      final storage = _MemoryStorage();
+      final store = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(store.dispose);
+      for (final name in ['日语', '英语', '数学']) {
+        store.addPlan(name: name, iconId: 'book', plannedSeconds: 90);
+      }
+      final ids = store.plans.map((plan) => plan.id).toList();
+      store.startOrResume(ids.first);
+      store.studyOneSecond(ids.first);
+      await tester.pumpWidget(
+        localizedApp(home: PlanManagementPage(store: store)),
+      );
+      await tester.tap(find.text('批量管理'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(const ValueKey('bulk_enable_background_pause')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(const ValueKey('bulk_disable_background_pause')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byKey(ValueKey('select_plan_${ids[0]}')));
+      await tester.tap(find.byKey(ValueKey('select_plan_${ids[2]}')));
+      await tester.pump();
+      expect(find.text('已选择 2 项'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('bulk_disable_background_pause')),
+      );
+      await tester.pump();
+      expect(store.planById(ids[0])!.pauseWhenBackgrounded, isFalse);
+      expect(store.planById(ids[1])!.pauseWhenBackgrounded, isTrue);
+      expect(store.planById(ids[2])!.pauseWhenBackgrounded, isFalse);
+      expect(find.text('已为 2 个计划关闭后台自动暂停'), findsOneWidget);
+      expect(await store.flush(), isTrue);
+      final reopened = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(reopened.dispose);
+      expect(reopened.planById(ids[0])!.pauseWhenBackgrounded, isFalse);
+      expect(reopened.planById(ids[1])!.pauseWhenBackgrounded, isTrue);
+      expect(reopened.planById(ids[2])!.pauseWhenBackgrounded, isFalse);
+      expect(reopened.planById(ids[0])!.studiedSeconds, 1);
+      await tester.tap(
+        find.byKey(const ValueKey('bulk_enable_background_pause')),
+      );
+      await tester.pump();
+      expect(store.plans.every((plan) => plan.pauseWhenBackgrounded), isTrue);
+      expect(find.text('已选择 2 项'), findsOneWidget);
+    },
+  );
+
+  testWidgets('80 pixel plan icons fit a narrow management page', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final store = StudyPlanStore(now: () => today);
+    addTearDown(store.dispose);
+    store.addPlan(
+      name: '一个比较长的自定义学习计划名称',
+      iconId: 'book',
+      plannedSeconds: 3600,
+    );
+    await tester.pumpWidget(
+      localizedApp(home: PlanManagementPage(store: store)),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<StudyPlanIcon>(find.byType(StudyPlanIcon)).tileSize,
+      80,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('批量管理'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   test(

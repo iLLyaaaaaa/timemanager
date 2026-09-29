@@ -32,6 +32,8 @@
   "bulkManage": "Select Plans",
   "noPlansManage": "No plans yet. Tap Add Plan to get started.",
   "backgroundPause": "Auto-pause in Background",
+  "enableBackgroundPause": "Enable background auto-pause",
+  "disableBackgroundPause": "Disable background auto-pause",
   "addPlan": "Add Plan",
   "selectAll": "Select All",
   "deselectAll": "Deselect All",
@@ -193,6 +195,24 @@
       "count": {
         "type": "int"
       }
+    }
+  },
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backgroundPauseEnabledCount": "Background auto-pause enabled for {count} plans.",
+  "@backgroundPauseEnabledCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backgroundPauseDisabledCount": "Background auto-pause disabled for {count} plans.",
+  "@backgroundPauseDisabledCount": {
+    "placeholders": {
+      "count": { "type": "int" }
     }
   },
   "deletePlanConfirm": "Delete the “{planName}” plan?",

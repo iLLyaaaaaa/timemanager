@@ -106,6 +106,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backgroundPause => '后台自动暂停';
 
   @override
+  String get enableBackgroundPause => '开启后台自动暂停';
+
+  @override
+  String get disableBackgroundPause => '关闭后台自动暂停';
+
+  @override
   String get addPlan => '新增计划';
 
   @override
@@ -469,6 +475,21 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String bulkDeleteConfirm(int count) {
     return '确定删除已选择的 $count 个计划吗？';
+  }
+
+  @override
+  String selectedCount(int count) {
+    return '已选择 $count 项';
+  }
+
+  @override
+  String backgroundPauseEnabledCount(int count) {
+    return '已为 $count 个计划开启后台自动暂停';
+  }
+
+  @override
+  String backgroundPauseDisabledCount(int count) {
+    return '已为 $count 个计划关闭后台自动暂停';
   }
 
   @override

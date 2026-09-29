@@ -32,6 +32,8 @@
   "bulkManage": "批量管理",
   "noPlansManage": "还没有计划，点击“新增计划”开始吧。",
   "backgroundPause": "后台自动暂停",
+  "enableBackgroundPause": "开启后台自动暂停",
+  "disableBackgroundPause": "关闭后台自动暂停",
   "addPlan": "新增计划",
   "selectAll": "全选",
   "deselectAll": "取消全选",
@@ -193,6 +195,24 @@
       "count": {
         "type": "int"
       }
+    }
+  },
+  "selectedCount": "已选择 {count} 项",
+  "@selectedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backgroundPauseEnabledCount": "已为 {count} 个计划开启后台自动暂停",
+  "@backgroundPauseEnabledCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backgroundPauseDisabledCount": "已为 {count} 个计划关闭后台自动暂停",
+  "@backgroundPauseDisabledCount": {
+    "placeholders": {
+      "count": { "type": "int" }
     }
   },
   "deletePlanConfirm": "确定删除“{planName}”计划吗？",

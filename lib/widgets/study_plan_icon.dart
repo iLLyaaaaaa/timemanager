@@ -10,15 +10,45 @@ class StudyPlanIcon extends StatelessWidget {
     super.key,
     required this.plan,
     this.size = 32,
+    this.tileSize,
     this.color,
   });
 
   final StudyPlan plan;
   final double size;
+  final double? tileSize;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final tile = tileSize;
+    if (tile != null) {
+      final colors = Theme.of(context).colorScheme;
+      final fallback = ColoredBox(
+        color: colors.primaryContainer,
+        child: Center(
+          child: Icon(
+            studyIconFor(plan.iconId).icon,
+            size: tile * 0.46,
+            color: color ?? colors.onPrimaryContainer,
+          ),
+        ),
+      );
+      final path = plan.customIconPath;
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox.square(
+          dimension: tile,
+          child: path == null || path.isEmpty
+              ? fallback
+              : Image.file(
+                  File(path),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => fallback,
+                ),
+        ),
+      );
+    }
     final fallback = Icon(
       studyIconFor(plan.iconId).icon,
       size: size,
