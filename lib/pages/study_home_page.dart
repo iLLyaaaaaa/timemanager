@@ -51,6 +51,56 @@ class _StudyHomePageState extends State<StudyHomePage> {
     );
   }
 
+  Future<void> _editHeadline() async {
+    var input = _settings.settings.homeHeadline;
+    final formKey = GlobalKey<FormState>();
+    final headline = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('编辑首页文案'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            key: const ValueKey('home_headline_input'),
+            initialValue: input,
+            autofocus: true,
+            maxLines: 1,
+            maxLength: 40,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: '首页文案',
+              hintText: '写一句鼓励自己的话',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => input = value,
+            validator: (value) =>
+                value == null || value.trim().isEmpty ? '请输入一句简短文案' : null,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogContext, input.trim());
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || headline == null) return;
+    _settings.update(_settings.settings.copyWith(homeHeadline: headline));
+    if (!await _settings.flush() && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('首页文案暂未写入本地，请稍后重试')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const titles = ['今日学习', '学习统计', '设置'];
@@ -126,12 +176,26 @@ class _StudyHomePageState extends State<StudyHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '每天进步一点点',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colors.onPrimaryContainer,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _settings.settings.homeHeadline,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '编辑首页文案',
+                    onPressed: _editHeadline,
+                    icon: const Icon(Icons.edit_outlined),
+                    color: colors.onPrimaryContainer,
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(

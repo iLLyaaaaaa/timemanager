@@ -4,6 +4,7 @@ class StudyPlan {
     required this.name,
     required this.iconId,
     required this.plannedSeconds,
+    this.pauseWhenBackgrounded = true,
     this.progressDay,
     this.remainingSeconds = 0,
     this.studiedSeconds = 0,
@@ -15,18 +16,26 @@ class StudyPlan {
   final String name;
   final String iconId;
   final int plannedSeconds;
+  final bool pauseWhenBackgrounded;
   final String? progressDay;
   final int remainingSeconds;
   final int studiedSeconds;
   final bool hasStartedToday;
   final bool isCompletedToday;
 
-  StudyPlan copyWith({String? name, String? iconId, int? plannedSeconds}) {
+  StudyPlan copyWith({
+    String? name,
+    String? iconId,
+    int? plannedSeconds,
+    bool? pauseWhenBackgrounded,
+  }) {
     return StudyPlan(
       id: id,
       name: name ?? this.name,
       iconId: iconId ?? this.iconId,
       plannedSeconds: plannedSeconds ?? this.plannedSeconds,
+      pauseWhenBackgrounded:
+          pauseWhenBackgrounded ?? this.pauseWhenBackgrounded,
       progressDay: progressDay,
       remainingSeconds: remainingSeconds,
       studiedSeconds: studiedSeconds,
@@ -47,6 +56,7 @@ class StudyPlan {
       name: name,
       iconId: iconId,
       plannedSeconds: plannedSeconds,
+      pauseWhenBackgrounded: pauseWhenBackgrounded,
       progressDay: day,
       remainingSeconds: remainingSeconds,
       studiedSeconds: studiedSeconds,
@@ -60,6 +70,7 @@ class StudyPlan {
     'name': name,
     'iconId': iconId,
     'plannedSeconds': plannedSeconds,
+    'pauseWhenBackgrounded': pauseWhenBackgrounded,
     'progressDay': progressDay,
     'remainingSeconds': remainingSeconds,
     'studiedSeconds': studiedSeconds,
@@ -75,9 +86,12 @@ class StudyPlan {
     final legacyMinutes = json['plannedMinutes'];
     final storedRemainingSeconds = json['remainingSeconds'];
     final storedStudiedSeconds = json['studiedSeconds'];
+    final storedPauseWhenBackgrounded = json['pauseWhenBackgrounded'];
     if (id is! String ||
         name is! String ||
         iconId is! String ||
+        (storedPauseWhenBackgrounded != null &&
+            storedPauseWhenBackgrounded is! bool) ||
         (seconds is! int || seconds <= 0) &&
             (legacyMinutes is! int ||
                 legacyMinutes <= 0 ||
@@ -91,6 +105,9 @@ class StudyPlan {
       plannedSeconds: seconds is int && seconds > 0
           ? seconds
           : (legacyMinutes as int) * 60,
+      pauseWhenBackgrounded: storedPauseWhenBackgrounded is bool
+          ? storedPauseWhenBackgrounded
+          : true,
       progressDay: json['progressDay'] is String
           ? json['progressDay'] as String
           : null,

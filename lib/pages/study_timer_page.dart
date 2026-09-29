@@ -15,11 +15,13 @@ class StudyTimerPage extends StatefulWidget {
     required this.store,
     required this.planId,
     this.settings,
+    this.now,
   });
 
   final StudyPlanStore store;
   final String planId;
   final SettingsStore? settings;
+  final DateTime Function()? now;
 
   @override
   State<StudyTimerPage> createState() => _StudyTimerPageState();
@@ -29,6 +31,10 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     with WidgetsBindingObserver {
   Timer? _timer;
   bool _isLeaving = false;
+  bool _isRunning = false;
+  DateTime? _backgroundedAt;
+
+  DateTime _now() => widget.now?.call() ?? DateTime.now();
 
   @override
   void initState() {
@@ -38,25 +44,59 @@ class _StudyTimerPageState extends State<StudyTimerPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
+    if (state == AppLifecycleState.resumed) {
+      if (_backgroundedAt != null && _isRunning) {
+        _applyBackgroundElapsed();
+        final plan = widget.store.planById(widget.planId);
+        if (plan != null && plan.hasStartedToday && plan.remainingSeconds > 0) {
+          _startTimer();
+        } else {
+          _finishSession(plan);
+        }
+        if (mounted) setState(() {});
+        unawaited(widget.store.flush());
+      }
+      return;
+    }
+    if (!_isRunning) return;
+    if (state == AppLifecycleState.detached) {
+      _applyBackgroundElapsed();
+      _stopSession();
+      unawaited(widget.store.flush());
+    } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
-      if (_timer != null) _pause();
+        state == AppLifecycleState.hidden) {
+      final plan = widget.store.planById(widget.planId);
+      if (plan?.pauseWhenBackgrounded ?? true) {
+        unawaited(_pause());
+      } else if (_backgroundedAt == null) {
+        _backgroundedAt = _now();
+        _stopTimer();
+        unawaited(widget.store.flush());
+      }
     }
   }
 
+  void _applyBackgroundElapsed() {
+    final started = _backgroundedAt;
+    _backgroundedAt = null;
+    if (started == null) return;
+    final seconds = _now().difference(started).inSeconds;
+    if (seconds > 0) widget.store.studySeconds(widget.planId, seconds);
+  }
+
   void _start() {
-    if (_timer != null) return;
+    if (_isRunning) return;
     final plan = widget.store.planById(widget.planId);
     if (plan == null || plan.isCompletedToday) return;
     widget.store.startOrResume(widget.planId);
+    _isRunning = true;
     _startTimer();
     setState(() {});
   }
 
   void _startTimer() {
-    if (_timer != null) return;
+    if (_timer != null || !_isRunning || _backgroundedAt != null) return;
     final plan = widget.store.planById(widget.planId);
     if (plan == null || !plan.hasStartedToday || plan.remainingSeconds == 0) {
       return;
@@ -67,15 +107,20 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       if (current == null ||
           !current.hasStartedToday ||
           current.remainingSeconds == 0) {
-        _stopTimer();
-        if (current?.remainingSeconds == 0 &&
-            mounted &&
-            (widget.settings?.settings.completionAlertEnabled ?? true)) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('太棒了，今日学习计划完成！')));
-        }
+        _finishSession(current);
       }
     });
+  }
+
+  void _finishSession(StudyPlan? plan) {
+    _stopSession();
+    if (mounted) setState(() {});
+    if (plan?.isCompletedToday == true &&
+        mounted &&
+        (widget.settings?.settings.completionAlertEnabled ?? true)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('太棒了，今日学习计划完成！')));
+    }
   }
 
   void _stopTimer() {
@@ -83,8 +128,15 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     _timer = null;
   }
 
-  Future<void> _pause() async {
+  void _stopSession() {
     _stopTimer();
+    _backgroundedAt = null;
+    _isRunning = false;
+  }
+
+  Future<void> _pause() async {
+    _applyBackgroundElapsed();
+    _stopSession();
     setState(() {});
     final saved = await widget.store.flush();
     if (!saved && mounted) {
@@ -95,7 +147,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
 
   Future<void> _adjustTime() async {
     if (_isLeaving) return;
-    if (_timer != null) await _pause();
+    if (_isRunning) await _pause();
     if (!mounted) return;
     final plan = widget.store.planById(widget.planId);
     if (plan == null) return;
@@ -154,7 +206,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   Future<void> _leavePage() async {
     if (_isLeaving) return;
     _isLeaving = true;
-    _stopTimer();
+    _applyBackgroundElapsed();
+    _stopSession();
     final saved = await widget.store.flush();
     if (!mounted) return;
     if (!saved) {
@@ -170,7 +223,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _stopTimer();
+    _applyBackgroundElapsed();
+    _stopSession();
     widget.store.flush();
     super.dispose();
   }
@@ -294,16 +348,14 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 child: FilledButton.icon(
                   onPressed: _isLeaving
                       ? null
-                      : _timer == null
-                      ? _start
-                      : _pause,
+                      : _isRunning
+                      ? _pause
+                      : _start,
                   icon: Icon(
-                    _timer == null
-                        ? Icons.play_arrow_rounded
-                        : Icons.pause_rounded,
+                    _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   ),
                   label: Text(
-                    _timer == null ? '开始' : '暂停',
+                    _isRunning ? '暂停' : '开始',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

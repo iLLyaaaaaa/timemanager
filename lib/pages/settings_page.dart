@@ -222,11 +222,9 @@ class SettingsPage extends StatelessWidget {
           ),
         ]),
         _section(context, '计时', [
-          SwitchListTile(
-            title: const Text('进入后台时自动暂停计时'),
-            subtitle: const Text('为了保证计时准确，进入后台时会自动暂停。'),
-            value: value.pauseWhenBackgrounded,
-            onChanged: null,
+          const ListTile(
+            title: Text('后台自动暂停'),
+            subtitle: Text('可在计划管理中分别设置每个计划'),
           ),
           SwitchListTile(
             title: const Text('倒计时结束提醒'),

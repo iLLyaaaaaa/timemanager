@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hello_app/data/study_plan_storage.dart';
 import 'package:hello_app/data/study_plan_store.dart';
 import 'package:hello_app/pages/study_home_page.dart';
+import 'package:hello_app/pages/plan_management_page.dart';
 import 'package:hello_app/pages/study_statistics_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/utils/study_duration.dart';
@@ -17,6 +19,23 @@ class _MemoryStorage implements StudyPlanStorage {
   Future<void> write(String snapshot) async {
     value = snapshot;
   }
+}
+
+class _FakePreferences implements SharedPreferencesAsync {
+  _FakePreferences(this.values);
+
+  final Map<String, String> values;
+
+  @override
+  Future<String?> getString(String key) async => values[key];
+
+  @override
+  Future<void> setString(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -44,6 +63,42 @@ void main() {
     addTearDown(reopened.dispose);
     expect(reopened.plans, isEmpty);
   });
+
+  test(
+    'SharedPreferences keeps the version 3 snapshot as a migration backup',
+    () async {
+      final previous = jsonEncode({
+        'version': 3,
+        'nextId': 2,
+        'plans': [
+          {
+            'id': 'custom_1',
+            'name': '阅读',
+            'iconId': 'book',
+            'plannedSeconds': 90,
+            'remainingSeconds': 0,
+            'studiedSeconds': 0,
+            'hasStartedToday': false,
+            'isCompletedToday': false,
+          },
+        ],
+        'records': <Object>[],
+      });
+      final preferences = _FakePreferences({'study_plans_v3': previous});
+      final storage = SharedPreferencesPlanStorage(preferences: preferences);
+      final store = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(store.dispose);
+      expect(store.plans.single.name, '阅读');
+      expect(await store.flush(), isTrue);
+      expect(await preferences.getString('study_plans_v3'), previous);
+      final migrated = await preferences.getString('study_plans_v4');
+      expect(jsonDecode(migrated!)['version'], 4);
+      expect(jsonDecode(migrated)['plans'][0]['pauseWhenBackgrounded'], isTrue);
+    },
+  );
 
   test(
     'legacy plans migrate without losing second precision or history',
@@ -87,7 +142,7 @@ void main() {
       expect(store.records.length, 2);
       expect(store.records.first.date, '2026-09-27');
       expect(await store.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 3);
+      expect(jsonDecode(storage.value!)['version'], 4);
       expect(legacy, contains('plannedMinutes'));
       store.deletePlan('custom_1');
       expect(store.records.length, 2);
@@ -110,6 +165,120 @@ void main() {
     store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 90);
     await store.flush();
     expect(storage.value, '{"version":99,"plans":[]}');
+  });
+
+  test(
+    'version 3 plans gain a default background pause without losing data',
+    () async {
+      final storage = _MemoryStorage()
+        ..value = jsonEncode({
+          'version': 3,
+          'nextId': 2,
+          'plans': [
+            {
+              'id': 'custom_1',
+              'name': '阅读',
+              'iconId': 'book',
+              'plannedSeconds': 90,
+              'progressDay': '2026-09-28',
+              'remainingSeconds': 37,
+              'studiedSeconds': 53,
+              'hasStartedToday': true,
+              'isCompletedToday': false,
+            },
+          ],
+          'records': [
+            {
+              'id': '2026-09-28_custom_1',
+              'planId': 'custom_1',
+              'date': '2026-09-28',
+              'plannedSeconds': 90,
+              'studiedSeconds': 53,
+            },
+          ],
+        });
+      final store = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(store.dispose);
+      expect(store.plans.single.pauseWhenBackgrounded, isTrue);
+      expect(store.plans.single.remainingSeconds, 37);
+      expect(store.plans.single.studiedSeconds, 53);
+      expect(store.records.single.studiedSeconds, 53);
+      expect(await store.flush(), isTrue);
+      expect(jsonDecode(storage.value!)['version'], 4);
+      expect(
+        jsonDecode(storage.value!)['plans'][0]['pauseWhenBackgrounded'],
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets('a plan with background pause disabled continues on resume', (
+    tester,
+  ) async {
+    final store = StudyPlanStore(now: () => today);
+    addTearDown(store.dispose);
+    store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 90);
+    final id = store.plans.single.id;
+    store.updatePlan(store.plans.single.copyWith(pauseWhenBackgrounded: false));
+    var clock = DateTime(2026, 9, 28, 12);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyTimerPage(store: store, planId: id, now: () => clock),
+      ),
+    );
+    await tester.tap(find.text('开始'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    expect(store.plans.single.studiedSeconds, 2);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    clock = clock.add(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 30));
+    expect(store.plans.single.studiedSeconds, 2);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(store.plans.single.studiedSeconds, 22);
+    expect(store.plans.single.remainingSeconds, 68);
+    expect(find.text('暂停'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(store.plans.single.studiedSeconds, 23);
+    await tester.tap(find.text('暂停'));
+    await tester.pump();
+    expect(find.text('开始'), findsOneWidget);
+  });
+
+  testWidgets('each plan keeps its own background setting after reload', (
+    tester,
+  ) async {
+    final storage = _MemoryStorage();
+    final store = await StudyPlanStore.load(storage: storage, now: () => today);
+    addTearDown(store.dispose);
+    store.addPlan(name: '日语', iconId: 'language', plannedSeconds: 90);
+    store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 120);
+    final firstId = store.plans.first.id;
+    final secondId = store.plans.last.id;
+    store.startOrResume(firstId);
+    store.studyOneSecond(firstId);
+    await tester.pumpWidget(
+      MaterialApp(home: PlanManagementPage(store: store)),
+    );
+    await tester.tap(find.byKey(ValueKey('background_pause_$secondId')));
+    await tester.pump();
+    expect(store.planById(firstId)!.pauseWhenBackgrounded, isTrue);
+    expect(store.planById(secondId)!.pauseWhenBackgrounded, isFalse);
+    expect(await store.flush(), isTrue);
+    final reopened = await StudyPlanStore.load(
+      storage: storage,
+      now: () => today,
+    );
+    addTearDown(reopened.dispose);
+    expect(reopened.planById(firstId)!.pauseWhenBackgrounded, isTrue);
+    expect(reopened.planById(secondId)!.pauseWhenBackgrounded, isFalse);
+    expect(reopened.planById(firstId)!.studiedSeconds, 1);
+    expect(reopened.records.single.planId, firstId);
   });
 
   test(

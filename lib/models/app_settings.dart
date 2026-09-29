@@ -8,6 +8,7 @@ class AppSettings {
     this.dailyResetMinute = 0,
     this.defaultPlanSeconds = 3600,
     this.confirmBeforeDelete = true,
+    this.homeHeadline = '每天进步一点点',
   });
 
   final ThemeMode themeMode;
@@ -16,9 +17,7 @@ class AppSettings {
   final int dailyResetMinute;
   final int defaultPlanSeconds;
   final bool confirmBeforeDelete;
-
-  // Background timing is fixed to pause until reliable background execution exists.
-  bool get pauseWhenBackgrounded => true;
+  final String homeHeadline;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -27,6 +26,7 @@ class AppSettings {
     int? dailyResetMinute,
     int? defaultPlanSeconds,
     bool? confirmBeforeDelete,
+    String? homeHeadline,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     completionAlertEnabled:
@@ -35,6 +35,7 @@ class AppSettings {
     dailyResetMinute: dailyResetMinute ?? this.dailyResetMinute,
     defaultPlanSeconds: defaultPlanSeconds ?? this.defaultPlanSeconds,
     confirmBeforeDelete: confirmBeforeDelete ?? this.confirmBeforeDelete,
+    homeHeadline: homeHeadline ?? this.homeHeadline,
   );
 
   Map<String, Object> toJson() => {
@@ -45,6 +46,7 @@ class AppSettings {
     'dailyResetMinute': dailyResetMinute,
     'defaultPlanSeconds': defaultPlanSeconds,
     'confirmBeforeDelete': confirmBeforeDelete,
+    'homeHeadline': homeHeadline,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,13 @@ class AppSettings {
     final minute = json['dailyResetMinute'];
     final seconds = json['defaultPlanSeconds'];
     final legacyMinutes = json['defaultPlanMinutes'];
+    final headline = json['homeHeadline'];
+    if (headline != null &&
+        (headline is! String ||
+            headline.trim().isEmpty ||
+            headline.characters.length > 40)) {
+      throw const FormatException('Invalid home headline');
+    }
     if (seconds != null && (seconds is! int || seconds <= 0)) {
       throw const FormatException('Invalid default plan duration');
     }
@@ -87,6 +96,7 @@ class AppSettings {
       confirmBeforeDelete: json['confirmBeforeDelete'] is bool
           ? json['confirmBeforeDelete'] as bool
           : true,
+      homeHeadline: headline is String ? headline : '每天进步一点点',
     );
   }
 }

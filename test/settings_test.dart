@@ -40,6 +40,7 @@ void main() {
       expect(settings.settings.dailyResetMinute, 30);
       expect(settings.settings.confirmBeforeDelete, isFalse);
       expect(settings.settings.completionAlertEnabled, isFalse);
+      expect(settings.settings.homeHeadline, '每天进步一点点');
       expect(await settings.flush(), isTrue);
       expect(jsonDecode(storage.value!)['version'], 2);
       expect(jsonDecode(storage.value!)['showSeconds'], isNull);
@@ -71,6 +72,48 @@ void main() {
     final reopened = await SettingsStore.load(storage: storage);
     addTearDown(reopened.dispose);
     expect(reopened.settings.themeMode, ThemeMode.dark);
+  });
+
+  testWidgets('home headline edits immediately and survives reload', (
+    tester,
+  ) async {
+    final storage = _MemorySettingsStorage();
+    final settings = await SettingsStore.load(storage: storage);
+    final plans = StudyPlanStore(settings: settings);
+    addTearDown(plans.dispose);
+    addTearDown(settings.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyHomePage(store: plans, settings: settings),
+      ),
+    );
+    expect(find.text('每天进步一点点'), findsOneWidget);
+    await tester.tap(find.byTooltip('编辑首页文案'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('home_headline_input')),
+      '   ',
+    );
+    await tester.tap(find.text('保存'));
+    await tester.pump();
+    expect(find.text('请输入一句简短文案'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('home_headline_input')),
+      '专注每一天',
+    );
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text('专注每一天'), findsOneWidget);
+    expect(await settings.flush(), isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    final reopened = await SettingsStore.load(storage: storage);
+    addTearDown(reopened.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyHomePage(store: plans, settings: reopened),
+      ),
+    );
+    expect(find.text('专注每一天'), findsOneWidget);
   });
 
   testWidgets('default seconds prefill new plans and restore keeps plans', (

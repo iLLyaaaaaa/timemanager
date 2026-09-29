@@ -42,7 +42,8 @@ class StudyPlanStore extends ChangeNotifier {
         if (decoded is! Map<String, dynamic> ||
             (decoded['version'] != 1 &&
                 decoded['version'] != 2 &&
-                decoded['version'] != 3) ||
+                decoded['version'] != 3 &&
+                decoded['version'] != 4) ||
             decoded['plans'] is! List) {
           throw const FormatException('Invalid saved plans');
         }
@@ -65,7 +66,7 @@ class StudyPlanStore extends ChangeNotifier {
           ..clear()
           ..addAll(loaded);
         store._records.addAll(loadedRecords);
-        needsWrite = decoded['version'] != 3;
+        needsWrite = decoded['version'] != 4;
         final nextId = decoded['nextId'];
         if (nextId is int && nextId > 0) store._nextId = nextId;
         while (store._plans.any(
@@ -186,8 +187,12 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void deletePlan(String id) {
+    deletePlans({id});
+  }
+
+  void deletePlans(Set<String> ids) {
     final oldLength = _plans.length;
-    _plans.removeWhere((plan) => plan.id == id);
+    _plans.removeWhere((plan) => ids.contains(plan.id));
     if (_plans.length != oldLength) _changed();
   }
 
@@ -239,17 +244,23 @@ class StudyPlanStore extends ChangeNotifier {
     _changed();
   }
 
-  void studyOneSecond(String id) {
+  void studyOneSecond(String id) => studySeconds(id, 1);
+
+  void studySeconds(String id, int seconds) {
+    if (seconds <= 0) return;
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == id);
     if (index == -1) return;
     final plan = _plans[index];
     if (!plan.hasStartedToday || plan.remainingSeconds == 0) return;
-    final remaining = plan.remainingSeconds - 1;
+    final consumed = seconds < plan.remainingSeconds
+        ? seconds
+        : plan.remainingSeconds;
+    final remaining = plan.remainingSeconds - consumed;
     _plans[index] = plan.withProgress(
       day: _today,
       remainingSeconds: remaining,
-      studiedSeconds: plan.studiedSeconds + 1,
+      studiedSeconds: plan.studiedSeconds + consumed,
       hasStartedToday: true,
       isCompletedToday: remaining == 0,
     );
@@ -289,7 +300,7 @@ class StudyPlanStore extends ChangeNotifier {
     final target = storage;
     if (target == null || _hasLoadError) return;
     _pendingSnapshot = jsonEncode({
-      'version': 3,
+      'version': 4,
       'nextId': _nextId,
       'plans': _plans.map((plan) => plan.toJson()).toList(),
       'records': _records.map((record) => record.toJson()).toList(),
