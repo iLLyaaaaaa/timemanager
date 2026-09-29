@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
+
 class StudyDurationInput extends StatefulWidget {
   const StudyDurationInput({
     super.key,
@@ -51,33 +53,42 @@ class StudyDurationInputState extends State<StudyDurationInput> {
 
   String? _validationError() {
     final values = [_hours.text, _minutes.text, _seconds.text];
-    if (values.any((value) => value.isEmpty)) return '请填写小时、分钟和秒';
+    if (values.any((value) => value.isEmpty)) return 'durationEmpty';
     if (values.any((value) => !RegExp(r'^\d+$').hasMatch(value))) {
-      return '时间只能输入非负整数';
+      return 'durationNonnegative';
     }
     final hours = int.tryParse(values[0]);
     final minutes = int.tryParse(values[1]);
     final seconds = int.tryParse(values[2]);
     if (hours == null || minutes == null || seconds == null) {
-      return '时间数值过大，请缩短时长';
+      return 'durationTooLarge';
     }
-    if (minutes > 59 || seconds > 59) return '分钟和秒须在 0 到 59 之间';
+    if (minutes > 59 || seconds > 59) return 'durationRange';
     const maxSeconds = 0x7fffffffffffffff;
     if (hours > (maxSeconds - minutes * 60 - seconds) ~/ 3600) {
-      return '时间数值过大，请缩短时长';
+      return 'durationTooLarge';
     }
     if (hours == 0 && minutes == 0 && seconds == 0) {
-      return '总时长必须大于 0 秒';
+      return 'durationPositive';
     }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    String? localizedError() => switch (_validationError()) {
+      'durationEmpty' => l10n.durationEmpty,
+      'durationNonnegative' => l10n.durationNonnegative,
+      'durationTooLarge' => l10n.durationTooLarge,
+      'durationRange' => l10n.durationRange,
+      'durationPositive' => l10n.durationPositive,
+      _ => null,
+    };
     return FormField<int>(
       initialValue: widget.initialSeconds,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      validator: (_) => _validationError(),
+      validator: (_) => localizedError(),
       builder: (field) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -85,11 +96,11 @@ class StudyDurationInputState extends State<StudyDurationInput> {
           const SizedBox(height: 8),
           Row(
             children: [
-              _part(_hours, '小时', 'duration_hours', field),
+              _part(_hours, l10n.hours, 'duration_hours', field),
               const SizedBox(width: 8),
-              _part(_minutes, '分钟', 'duration_minutes', field),
+              _part(_minutes, l10n.minutes, 'duration_minutes', field),
               const SizedBox(width: 8),
-              _part(_seconds, '秒', 'duration_seconds', field),
+              _part(_seconds, l10n.seconds, 'duration_seconds', field),
             ],
           ),
           if (field.hasError) ...[

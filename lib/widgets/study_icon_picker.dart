@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_icon_catalog.dart';
 
 class StudyIconPicker extends StatelessWidget {
@@ -22,9 +24,19 @@ class StudyIconPicker extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('选择图标', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              AppLocalizations.of(context)!.chooseIcon,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const Spacer(),
-            Text('当前：${selected.label}'),
+            Text(
+              AppLocalizations.of(context)!.currentIcon(
+                localizedStudyIconLabel(
+                  AppLocalizations.of(context)!,
+                  selectedId,
+                ),
+              ),
+            ),
             const SizedBox(width: 8),
             Icon(selected.icon, color: colors.primary),
           ],
@@ -43,7 +55,10 @@ class StudyIconPicker extends StatelessWidget {
             final option = studyIconOptions[index];
             final isSelected = option.id == selectedId;
             return Tooltip(
-              message: option.label,
+              message: localizedStudyIconLabel(
+                AppLocalizations.of(context)!,
+                option.id,
+              ),
               child: Material(
                 color: isSelected ? colors.primaryContainer : colors.surface,
                 borderRadius: BorderRadius.circular(12),

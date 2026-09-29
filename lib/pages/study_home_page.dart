@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
@@ -52,12 +54,14 @@ class _StudyHomePageState extends State<StudyHomePage> {
   }
 
   Future<void> _editHeadline() async {
-    var input = _settings.settings.homeHeadline;
+    var input = _settings.settings.homeHeadlineCustomized
+        ? _settings.settings.homeHeadline
+        : AppLocalizations.of(context)!.defaultHomeHeadline;
     final formKey = GlobalKey<FormState>();
     final headline = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('编辑首页文案'),
+        title: Text(AppLocalizations.of(context)!.editHomeHeadline),
         content: Form(
           key: formKey,
           child: TextFormField(
@@ -67,20 +71,21 @@ class _StudyHomePageState extends State<StudyHomePage> {
             maxLines: 1,
             maxLength: 40,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: '首页文案',
-              hintText: '写一句鼓励自己的话',
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.homeHeadline,
+              hintText: AppLocalizations.of(context)!.homeHeadlineHint,
               border: OutlineInputBorder(),
             ),
             onChanged: (value) => input = value,
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? '请输入一句简短文案' : null,
+            validator: (value) => value == null || value.trim().isEmpty
+                ? AppLocalizations.of(context)!.homeHeadlineRequired
+                : null,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -88,22 +93,31 @@ class _StudyHomePageState extends State<StudyHomePage> {
                 Navigator.pop(dialogContext, input.trim());
               }
             },
-            child: const Text('保存'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
     );
     if (!mounted || headline == null) return;
-    _settings.update(_settings.settings.copyWith(homeHeadline: headline));
+    _settings.update(
+      _settings.settings.copyWith(
+        homeHeadline: headline,
+        homeHeadlineCustomized: true,
+      ),
+    );
     if (!await _settings.flush() && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('首页文案暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.headlineSaveFailed),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const titles = ['今日学习', '学习统计', '设置'];
+    final l10n = AppLocalizations.of(context)!;
+    final titles = [l10n.todayStudy, l10n.studyStatistics, l10n.settings];
 
     return AnimatedBuilder(
       animation: Listenable.merge([widget.store, _settings]),
@@ -117,7 +131,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
                   TextButton.icon(
                     onPressed: _openManagement,
                     icon: const Icon(Icons.tune_rounded),
-                    label: const Text('管理计划'),
+                    label: Text(AppLocalizations.of(context)!.managePlans),
                   ),
                   const SizedBox(width: 8),
                 ]
@@ -134,21 +148,21 @@ class _StudyHomePageState extends State<StudyHomePage> {
             widget.store.refreshForToday();
             setState(() => _selectedIndex = index);
           },
-          destinations: const [
+          destinations: [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
-              label: '首页',
+              label: AppLocalizations.of(context)!.home,
             ),
             NavigationDestination(
               icon: Icon(Icons.bar_chart_outlined),
               selectedIcon: Icon(Icons.bar_chart_rounded),
-              label: '统计',
+              label: AppLocalizations.of(context)!.statistics,
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings_rounded),
-              label: '设置',
+              label: AppLocalizations.of(context)!.settings,
             ),
           ],
         ),
@@ -180,7 +194,9 @@ class _StudyHomePageState extends State<StudyHomePage> {
                 children: [
                   Expanded(
                     child: Text(
-                      _settings.settings.homeHeadline,
+                      _settings.settings.homeHeadlineCustomized
+                          ? _settings.settings.homeHeadline
+                          : AppLocalizations.of(context)!.defaultHomeHeadline,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -190,7 +206,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
                     ),
                   ),
                   IconButton(
-                    tooltip: '编辑首页文案',
+                    tooltip: AppLocalizations.of(context)!.editHomeHeadline,
                     onPressed: _editHeadline,
                     icon: const Icon(Icons.edit_outlined),
                     color: colors.onPrimaryContainer,
@@ -199,7 +215,9 @@ class _StudyHomePageState extends State<StudyHomePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                '今天有 ${plans.length} 项学习计划 · 共 ${formatStudyDuration(totalSeconds)}',
+                AppLocalizations.of(
+                  context,
+                )!.homeSummary(plans.length, formatStudyDuration(totalSeconds)),
                 style: TextStyle(color: colors.onPrimaryContainer),
               ),
             ],
@@ -207,7 +225,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
         ),
         const SizedBox(height: 24),
         Text(
-          '今日计划',
+          AppLocalizations.of(context)!.todayPlan,
           style: Theme.of(context).textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
@@ -220,8 +238,8 @@ class _StudyHomePageState extends State<StudyHomePage> {
               padding: const EdgeInsets.all(24),
               child: Text(
                 widget.store.hasLoadError
-                    ? '计划数据读取失败，请先检查本地数据，避免覆盖旧记录。'
-                    : '还没有学习计划，点击右上角“管理计划”新增。',
+                    ? AppLocalizations.of(context)!.planLoadFailed
+                    : AppLocalizations.of(context)!.noPlansHome,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),

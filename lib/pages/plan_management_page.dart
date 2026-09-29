@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
@@ -72,16 +74,18 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('批量删除计划？'),
-        content: Text('确定删除已选择的 ${ids.length} 个计划吗？'),
+        title: Text(AppLocalizations.of(context)!.bulkDeleteTitle),
+        content: Text(
+          AppLocalizations.of(context)!.bulkDeleteConfirm(ids.length),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -93,16 +97,20 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
       _selectedIds.clear();
     });
     if (!await widget.store.flush() && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('删除结果暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.deleteSaveFailed)),
+      );
     }
   }
 
   Future<void> _setBackgroundPause(StudyPlan plan, bool enabled) async {
     widget.store.updatePlan(plan.copyWith(pauseWhenBackgrounded: enabled));
     if (!await widget.store.flush() && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('计时设置暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.timerSettingSaveFailed),
+        ),
+      );
     }
   }
 
@@ -112,16 +120,18 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('删除计划？'),
-          content: Text('确定删除“${plan.name}”计划吗？'),
+          title: Text(AppLocalizations.of(context)!.deletePlanTitle),
+          content: Text(
+            AppLocalizations.of(context)!.deletePlanConfirm(plan.name),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('删除'),
+              child: Text(AppLocalizations.of(context)!.delete),
             ),
           ],
         ),
@@ -133,9 +143,9 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     if (!confirmFirst && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('已删除“${plan.name}”计划'),
+          content: Text(AppLocalizations.of(context)!.deletedPlan(plan.name)),
           action: SnackBarAction(
-            label: '撤销',
+            label: AppLocalizations.of(context)!.undo,
             onPressed: () => widget.store.restorePlan(plan, index: index),
           ),
         ),
@@ -149,13 +159,17 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('计划管理'),
+        title: Text(AppLocalizations.of(context)!.planManagement),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         actions: [
           TextButton(
             onPressed: _toggleBulkMode,
-            child: Text(_bulkMode ? '完成' : '批量管理'),
+            child: Text(
+              _bulkMode
+                  ? AppLocalizations.of(context)!.done
+                  : AppLocalizations.of(context)!.bulkManage,
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -165,7 +179,9 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
         builder: (context, _) {
           final plans = widget.store.plans;
           if (plans.isEmpty) {
-            return const Center(child: Text('还没有计划，点击“新增计划”开始吧。'));
+            return Center(
+              child: Text(AppLocalizations.of(context)!.noPlansManage),
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -213,7 +229,9 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '每日计划 ${formatStudyDuration(plan.plannedSeconds)}',
+                                  AppLocalizations.of(context)!.dailyPlanValue(
+                                    formatStudyDuration(plan.plannedSeconds),
+                                  ),
                                 ),
                               ],
                             ),
@@ -221,12 +239,14 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                           if (!_bulkMode) ...[
                             IconButton(
                               onPressed: () => _openEditor(plan),
-                              tooltip: '编辑${plan.name}计划',
+                              tooltip: AppLocalizations.of(context)!
+                                  .editPlanTooltip(plan.name),
                               icon: const Icon(Icons.edit_outlined),
                             ),
                             IconButton(
                               onPressed: () => _deletePlan(plan),
-                              tooltip: '删除${plan.name}计划',
+                              tooltip: AppLocalizations.of(context)!
+                                  .deletePlanTooltip(plan.name),
                               icon: const Icon(Icons.delete_outline_rounded),
                             ),
                           ],
@@ -238,7 +258,9 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                           key: ValueKey('background_pause_${plan.id}'),
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('后台自动暂停'),
+                          title: Text(
+                            AppLocalizations.of(context)!.backgroundPause,
+                          ),
                           value: plan.pauseWhenBackgrounded,
                           onChanged: (value) =>
                               _setBackgroundPause(plan, value),
@@ -257,7 +279,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
           : FloatingActionButton.extended(
               onPressed: () => _openEditor(),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('新增计划'),
+              label: Text(AppLocalizations.of(context)!.addPlan),
             ),
       bottomNavigationBar: _bulkMode
           ? SafeArea(
@@ -269,15 +291,18 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                       onPressed: () => _toggleAll(widget.store.plans),
                       child: Text(
                         _selectedIds.length == widget.store.plans.length
-                            ? '取消全选'
-                            : '全选',
+                            ? AppLocalizations.of(context)!.deselectAll
+                            : AppLocalizations.of(context)!.selectAll,
                       ),
                     ),
                     const Spacer(),
                     FilledButton.icon(
                       onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
                       icon: const Icon(Icons.delete_outline_rounded),
-                      label: Text('删除选中 (${_selectedIds.length})'),
+                      label: Text(
+                        AppLocalizations.of(context)!
+                            .deleteSelected(_selectedIds.length),
+                      ),
                     ),
                   ],
                 ),

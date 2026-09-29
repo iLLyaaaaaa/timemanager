@@ -1,7 +1,10 @@
+import 'support/localized_app.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hello_app/data/settings_store.dart';
 import 'package:hello_app/data/study_plan_store.dart';
 import 'package:hello_app/main.dart';
@@ -16,6 +19,22 @@ class _MemorySettingsStorage implements AppSettingsStorage {
   Future<void> write(String snapshot) async {
     value = snapshot;
   }
+}
+
+class _FakePreferences implements SharedPreferencesAsync {
+  _FakePreferences(this.values);
+  final Map<String, String> values;
+
+  @override
+  Future<String?> getString(String key) async => values[key];
+
+  @override
+  Future<void> setString(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -42,7 +61,7 @@ void main() {
       expect(settings.settings.completionAlertEnabled, isFalse);
       expect(settings.settings.homeHeadline, '每天进步一点点');
       expect(await settings.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 2);
+      expect(jsonDecode(storage.value!)['version'], 3);
       expect(jsonDecode(storage.value!)['showSeconds'], isNull);
     },
   );
@@ -54,6 +73,113 @@ void main() {
     await settings.flush();
     expect(storage.value, '{"version":99}');
   });
+
+  test('version 2 settings gain language and alert defaults', () async {
+    final storage = _MemorySettingsStorage()
+      ..value = jsonEncode({
+        'version': 2,
+        'themeMode': 'dark',
+        'homeHeadline': '专注每一天',
+        'defaultPlanSeconds': 5400,
+      });
+    final settings = await SettingsStore.load(storage: storage);
+    addTearDown(settings.dispose);
+    expect(settings.settings.localeCode, 'zh');
+    expect(settings.settings.timerAlertMode, 'sound');
+    expect(settings.settings.selectedAlertSound, 1);
+    expect(settings.settings.homeHeadline, '专注每一天');
+    expect(settings.settings.defaultPlanSeconds, 5400);
+    expect(await settings.flush(), isTrue);
+    expect(jsonDecode(storage.value!)['version'], 3);
+  });
+
+  test('SharedPreferences retains v2 snapshot as a migration backup', () async {
+    final old = jsonEncode({
+      'version': 2,
+      'themeMode': 'dark',
+      'homeHeadline': '我的目标',
+      'defaultPlanSeconds': 4200,
+    });
+    final preferences = _FakePreferences({'app_settings_v2': old});
+    final storage = SharedPreferencesSettingsStorage(preferences: preferences);
+    final settings = await SettingsStore.load(storage: storage);
+    addTearDown(settings.dispose);
+    expect(settings.settings.homeHeadline, '我的目标');
+    expect(settings.settings.homeHeadlineCustomized, isTrue);
+    expect(await settings.flush(), isTrue);
+    expect(preferences.values['app_settings_v2'], old);
+    expect(
+      jsonDecode(preferences.values['app_settings_v3']!)['localeCode'],
+      'zh',
+    );
+  });
+
+  testWidgets(
+    'language switches both ways and persists without translating user data',
+    (tester) async {
+      final storage = _MemorySettingsStorage();
+      final settings = await SettingsStore.load(storage: storage);
+      settings.update(settings.settings.copyWith(homeHeadline: '专注每一天'));
+      final plans = StudyPlanStore(settings: settings);
+      plans.addPlan(name: '高等数学', iconId: 'calculate', plannedSeconds: 90);
+      await tester.pumpWidget(MyApp(store: plans, settings: settings));
+      await tester.tap(find.text('设置'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('语言'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(find.text('Theme Mode'), findsOneWidget);
+      await tester.tap(find.text('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('高等数学'), findsOneWidget);
+      expect(find.text('专注每一天'), findsOneWidget);
+      expect(find.text('Manage Plans'), findsOneWidget);
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Language'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('简体中文'));
+      await tester.pumpAndSettle();
+      expect(find.text('主题模式'), findsOneWidget);
+      await tester.tap(find.text('语言'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(await settings.flush(), isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+      final reopened = await SettingsStore.load(storage: storage);
+      addTearDown(reopened.dispose);
+      expect(reopened.settings.localeCode, 'en');
+      expect(reopened.settings.homeHeadline, '专注每一天');
+    },
+  );
+
+  test(
+    'alert mode and chosen sound survive reload and defaults restore',
+    () async {
+      final storage = _MemorySettingsStorage();
+      final settings = await SettingsStore.load(storage: storage);
+      addTearDown(settings.dispose);
+      settings.update(
+        settings.settings.copyWith(
+          timerAlertMode: 'vibration',
+          selectedAlertSound: 4,
+          localeCode: 'en',
+        ),
+      );
+      expect(await settings.flush(), isTrue);
+      final reopened = await SettingsStore.load(storage: storage);
+      addTearDown(reopened.dispose);
+      expect(reopened.settings.timerAlertMode, 'vibration');
+      expect(reopened.settings.selectedAlertSound, 4);
+      expect(reopened.settings.localeCode, 'en');
+      reopened.restoreDefaults();
+      expect(reopened.settings.timerAlertMode, 'sound');
+      expect(reopened.settings.selectedAlertSound, 1);
+      expect(reopened.settings.localeCode, 'zh');
+    },
+  );
 
   testWidgets('theme changes immediately and survives reload', (tester) async {
     final storage = _MemorySettingsStorage();
@@ -83,7 +209,7 @@ void main() {
     addTearDown(plans.dispose);
     addTearDown(settings.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: StudyHomePage(store: plans, settings: settings),
       ),
     );
@@ -109,7 +235,7 @@ void main() {
     final reopened = await SettingsStore.load(storage: storage);
     addTearDown(reopened.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: StudyHomePage(store: plans, settings: reopened),
       ),
     );
@@ -124,13 +250,14 @@ void main() {
     addTearDown(plans.dispose);
     addTearDown(settings.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: StudyHomePage(store: plans, settings: settings),
       ),
     );
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -280));
+    await tester.scrollUntilVisible(find.text('新增计划默认时长'), 200);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     await tester.tap(find.text('新增计划默认时长'));
     await tester.pumpAndSettle();
@@ -159,11 +286,12 @@ void main() {
     await tester.tap(find.text('保存计划'));
     await tester.pumpAndSettle();
     expect(plans.plans.single.plannedSeconds, 3690);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -320));
+    await tester.scrollUntilVisible(find.text('恢复默认设置'), 200);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     await tester.tap(find.text('恢复默认设置'));
     await tester.pumpAndSettle();
@@ -202,13 +330,14 @@ void main() {
     plans.startOrResume(plans.plans.single.id);
     plans.studyOneSecond(plans.plans.single.id);
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: Scaffold(
           body: SettingsPage(settings: settings, plans: plans),
         ),
       ),
     );
-    await tester.drag(find.byType(ListView), const Offset(0, -450));
+    await tester.scrollUntilVisible(find.text('清空学习数据'), 200);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     await tester.tap(find.text('清空学习数据'));
     await tester.pumpAndSettle();
@@ -218,6 +347,8 @@ void main() {
     expect(plans.plans.single.studiedSeconds, 0);
     expect(plans.records, isEmpty);
     await tester.scrollUntilVisible(find.text('清空全部数据'), 200);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('清空全部数据'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('继续'));

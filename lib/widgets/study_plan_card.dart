@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_icon_catalog.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
@@ -14,10 +16,13 @@ class StudyPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final status = plan.isCompletedToday
-        ? '今日计划已完成'
+        ? AppLocalizations.of(context)!.completedToday
         : plan.hasStartedToday
-        ? '今日剩余 ${formatStudyDuration(plan.remainingSeconds)}'
-        : '今日计划 ${formatStudyDuration(plan.plannedSeconds)}';
+        ? AppLocalizations.of(
+            context,
+          )!.todayRemainingDuration(formatStudyDuration(plan.remainingSeconds))
+        : AppLocalizations.of(context)!
+              .todayPlanDuration(formatStudyDuration(plan.plannedSeconds));
 
     return Card(
       key: ValueKey('plan_card_${plan.id}'),
@@ -71,7 +76,9 @@ class StudyPlanCard extends StatelessWidget {
                     ),
                     if (plan.hasStartedToday)
                       Text(
-                        '计划 ${formatStudyDuration(plan.plannedSeconds)}',
+                        AppLocalizations.of(context)!.planDuration(
+                          formatStudyDuration(plan.plannedSeconds),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall,
@@ -96,10 +103,10 @@ class StudyPlanCard extends StatelessWidget {
                   ),
                   child: Text(
                     plan.isCompletedToday
-                        ? '查看进度'
+                        ? AppLocalizations.of(context)!.viewProgress
                         : plan.hasStartedToday
-                        ? '继续学习'
-                        : '开始学习',
+                        ? AppLocalizations.of(context)!.continueStudy
+                        : AppLocalizations.of(context)!.startStudy,
                     maxLines: 1,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),

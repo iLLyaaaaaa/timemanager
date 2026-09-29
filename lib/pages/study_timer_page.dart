@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
+import '../models/app_settings.dart';
 import '../utils/study_duration.dart';
 import '../widgets/study_duration_input.dart';
+import '../services/timer_alert_service.dart';
 
 class StudyTimerPage extends StatefulWidget {
   const StudyTimerPage({
@@ -16,12 +20,14 @@ class StudyTimerPage extends StatefulWidget {
     required this.planId,
     this.settings,
     this.now,
+    this.alerts,
   });
 
   final StudyPlanStore store;
   final String planId;
   final SettingsStore? settings;
   final DateTime Function()? now;
+  final TimerAlertService? alerts;
 
   @override
   State<StudyTimerPage> createState() => _StudyTimerPageState();
@@ -33,6 +39,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   bool _isLeaving = false;
   bool _isRunning = false;
   DateTime? _backgroundedAt;
+  late final TimerAlertService _alerts = widget.alerts ?? TimerAlertService();
+  bool _completionHandled = false;
 
   DateTime _now() => widget.now?.call() ?? DateTime.now();
 
@@ -46,12 +54,13 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_backgroundedAt != null && _isRunning) {
+        unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
         _applyBackgroundElapsed();
         final plan = widget.store.planById(widget.planId);
         if (plan != null && plan.hasStartedToday && plan.remainingSeconds > 0) {
           _startTimer();
         } else {
-          _finishSession(plan);
+          _finishSession(plan, fromBackground: true);
         }
         if (mounted) setState(() {});
         unawaited(widget.store.flush());
@@ -72,6 +81,15 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       } else if (_backgroundedAt == null) {
         _backgroundedAt = _now();
         _stopTimer();
+        if (plan != null && mounted) {
+          unawaited(
+            _alerts.scheduleBackgroundCompletion(
+              plan: plan,
+              settings: widget.settings?.settings ?? const AppSettings(),
+              l10n: AppLocalizations.of(context)!,
+            ),
+          );
+        }
         unawaited(widget.store.flush());
       }
     }
@@ -90,9 +108,37 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final plan = widget.store.planById(widget.planId);
     if (plan == null || plan.isCompletedToday) return;
     widget.store.startOrResume(widget.planId);
+    _completionHandled = false;
     _isRunning = true;
+    if (!plan.pauseWhenBackgrounded) {
+      unawaited(_offerBackgroundPermission());
+    }
     _startTimer();
     setState(() {});
+  }
+
+  Future<void> _offerBackgroundPermission() async {
+    if (await _alerts.notificationsEnabled() &&
+        await _alerts.exactAlarmsEnabled()) {
+      return;
+    }
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.notificationPermissionHint),
+        action: SnackBarAction(
+          label: l10n.notificationPermissionAction,
+          onPressed: () => unawaited(_requestBackgroundPermission()),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _requestBackgroundPermission() async {
+    if (await _alerts.requestNotificationPermission()) {
+      await _alerts.requestExactAlarmPermission();
+    }
   }
 
   void _startTimer() {
@@ -112,14 +158,20 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     });
   }
 
-  void _finishSession(StudyPlan? plan) {
+  void _finishSession(StudyPlan? plan, {bool fromBackground = false}) {
+    if (_completionHandled || !_isRunning) return;
+    _completionHandled = true;
     _stopSession();
     if (mounted) setState(() {});
+    final settings = widget.settings?.settings ?? const AppSettings();
     if (plan?.isCompletedToday == true &&
         mounted &&
-        (widget.settings?.settings.completionAlertEnabled ?? true)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('太棒了，今日学习计划完成！')));
+        settings.timerAlertMode != 'none' &&
+        !fromBackground) {
+      unawaited(_alerts.complete(settings));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.completeSnack)),
+      );
     }
   }
 
@@ -135,13 +187,15 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   }
 
   Future<void> _pause() async {
+    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
     _applyBackgroundElapsed();
     _stopSession();
     setState(() {});
     final saved = await widget.store.flush();
     if (!saved && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('学习进度暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
+      );
     }
   }
 
@@ -159,7 +213,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final seconds = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('调整时间'),
+        title: Text(AppLocalizations.of(context)!.adjustTime),
         scrollable: true,
         content: Form(
           key: formKey,
@@ -167,12 +221,15 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('当前剩余 ${formatStudyDuration(currentSeconds)}'),
+              Text(
+                AppLocalizations.of(context)!
+                    .currentRemaining(formatStudyDuration(currentSeconds)),
+              ),
               const SizedBox(height: 16),
               StudyDurationInput(
                 key: durationKey,
                 initialSeconds: currentSeconds,
-                label: '新的剩余时间',
+                label: AppLocalizations.of(context)!.newRemainingTime,
               ),
             ],
           ),
@@ -180,7 +237,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -189,7 +246,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                     .pop(durationKey.currentState!.totalSeconds);
               }
             },
-            child: const Text('保存'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -198,14 +255,16 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     widget.store.adjustRemainingSeconds(widget.planId, seconds);
     final saved = await widget.store.flush();
     if (!saved && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('学习进度暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
+      );
     }
   }
 
   Future<void> _leavePage() async {
     if (_isLeaving) return;
     _isLeaving = true;
+    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
     _applyBackgroundElapsed();
     _stopSession();
     final saved = await widget.store.flush();
@@ -213,8 +272,9 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     if (!saved) {
       _isLeaving = false;
       setState(() {});
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('学习进度暂未写入本地，请稍后重试')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
+      );
       return;
     }
     Navigator.of(context).pop();
@@ -225,6 +285,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     WidgetsBinding.instance.removeObserver(this);
     _applyBackgroundElapsed();
     _stopSession();
+    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
+    if (widget.alerts == null) unawaited(_alerts.dispose());
     widget.store.flush();
     super.dispose();
   }
@@ -242,8 +304,12 @@ class _StudyTimerPageState extends State<StudyTimerPage>
           final plan = widget.store.planById(widget.planId);
           if (plan == null) {
             return Scaffold(
-              appBar: AppBar(title: const Text('学习计时')),
-              body: const Center(child: Text('这个计划已不存在')),
+              appBar: AppBar(
+                title: Text(AppLocalizations.of(context)!.studyTimer),
+              ),
+              body: Center(
+                child: Text(AppLocalizations.of(context)!.planMissing),
+              ),
             );
           }
           return _buildTimer(context, plan);
@@ -262,7 +328,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('学习计时'),
+        title: Text(AppLocalizations.of(context)!.studyTimer),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
       ),
@@ -292,7 +358,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             ),
             const SizedBox(height: 6),
             Text(
-              '今日计划总时长 ${formatStudyDuration(plan.plannedSeconds)}',
+              AppLocalizations.of(context)!
+                  .todayPlanTotal(formatStudyDuration(plan.plannedSeconds)),
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 32),
@@ -318,7 +385,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '剩余时间',
+                          AppLocalizations.of(context)!.remainingTime,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 8),
@@ -332,7 +399,10 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          completed ? '今日计划已完成' : '专注当下，继续加油',
+                          completed
+                              ? AppLocalizations.of(context)!.completedToday
+                              : AppLocalizations.of(context)!
+                                    .focusEncouragement,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
@@ -355,7 +425,9 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                     _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   ),
                   label: Text(
-                    _isRunning ? '暂停' : '开始',
+                    _isRunning
+                        ? AppLocalizations.of(context)!.pause
+                        : AppLocalizations.of(context)!.start,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -367,7 +439,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             OutlinedButton.icon(
               onPressed: _isLeaving ? null : _adjustTime,
               icon: const Icon(Icons.edit_outlined),
-              label: const Text('调整时间'),
+              label: Text(AppLocalizations.of(context)!.adjustTime),
             ),
             const SizedBox(height: 24),
             Card(
@@ -382,7 +454,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('已学习时间'),
+                    Text(AppLocalizations.of(context)!.studiedTime),
                     Text(
                       formatStudyDuration(plan.studiedSeconds),
                       style: Theme.of(context).textTheme.titleMedium

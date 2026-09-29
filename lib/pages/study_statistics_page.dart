@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../models/study_plan.dart';
@@ -46,19 +48,29 @@ class StudyStatisticsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '今日总览',
+                  AppLocalizations.of(context)!.todayOverview,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colors.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('今日计划总时长：${formatStudyDuration(plannedSeconds)}'),
-                Text('今日已学习：${formatStudyDuration(studiedSeconds)}'),
-                Text('今日剩余：${formatStudyDuration(remainingSeconds)}'),
+                Text(
+                  AppLocalizations.of(context)!
+                      .overviewPlanned(formatStudyDuration(plannedSeconds)),
+                ),
+                Text(
+                  AppLocalizations.of(context)!
+                      .overviewStudied(formatStudyDuration(studiedSeconds)),
+                ),
+                Text(
+                  AppLocalizations.of(context)!
+                      .overviewRemaining(formatStudyDuration(remainingSeconds)),
+                ),
                 const SizedBox(height: 12),
                 Text(
-                  '今日完成率：${_percent(completion)}',
+                  AppLocalizations.of(context)!
+                      .overviewCompletion(_percent(completion)),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colors.onPrimaryContainer,
@@ -75,15 +87,18 @@ class StudyStatisticsPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          '各计划进度',
+          AppLocalizations.of(context)!.planProgress,
           style: Theme.of(context).textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (plans.isEmpty)
-          const Card(
+          Card(
             elevation: 0,
-            child: Padding(padding: EdgeInsets.all(24), child: Text('还没有学习计划')),
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(AppLocalizations.of(context)!.noPlans),
+            ),
           )
         else
           for (final plan in plans) ...[
@@ -135,12 +150,23 @@ class _PlanStatisticsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text('计划：${formatStudyDuration(plannedSeconds)}'),
-            Text('已学习：${formatStudyDuration(plan.studiedSeconds)}'),
-            Text('剩余：${formatStudyDuration(remainingSeconds)}'),
+            Text(
+              AppLocalizations.of(context)!
+                  .statPlanned(formatStudyDuration(plannedSeconds)),
+            ),
+            Text(
+              AppLocalizations.of(context)!
+                  .statStudied(formatStudyDuration(plan.studiedSeconds)),
+            ),
+            Text(
+              AppLocalizations.of(context)!
+                  .statRemaining(formatStudyDuration(remainingSeconds)),
+            ),
             if (plan.studiedSeconds > plannedSeconds)
               Text(
-                '超出计划：${formatStudyDuration(plan.studiedSeconds - plannedSeconds)}',
+                AppLocalizations.of(context)!.statOver(
+                  formatStudyDuration(plan.studiedSeconds - plannedSeconds),
+                ),
               ),
             const SizedBox(height: 12),
             LinearProgressIndicator(

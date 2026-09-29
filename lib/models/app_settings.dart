@@ -9,6 +9,10 @@ class AppSettings {
     this.defaultPlanSeconds = 3600,
     this.confirmBeforeDelete = true,
     this.homeHeadline = '每天进步一点点',
+    this.homeHeadlineCustomized = false,
+    this.localeCode = 'zh',
+    this.timerAlertMode = 'sound',
+    this.selectedAlertSound = 1,
   });
 
   final ThemeMode themeMode;
@@ -18,6 +22,10 @@ class AppSettings {
   final int defaultPlanSeconds;
   final bool confirmBeforeDelete;
   final String homeHeadline;
+  final bool homeHeadlineCustomized;
+  final String localeCode;
+  final String timerAlertMode;
+  final int selectedAlertSound;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -27,6 +35,10 @@ class AppSettings {
     int? defaultPlanSeconds,
     bool? confirmBeforeDelete,
     String? homeHeadline,
+    bool? homeHeadlineCustomized,
+    String? localeCode,
+    String? timerAlertMode,
+    int? selectedAlertSound,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     completionAlertEnabled:
@@ -36,10 +48,16 @@ class AppSettings {
     defaultPlanSeconds: defaultPlanSeconds ?? this.defaultPlanSeconds,
     confirmBeforeDelete: confirmBeforeDelete ?? this.confirmBeforeDelete,
     homeHeadline: homeHeadline ?? this.homeHeadline,
+    homeHeadlineCustomized:
+        homeHeadlineCustomized ??
+        (homeHeadline != null ? true : this.homeHeadlineCustomized),
+    localeCode: localeCode ?? this.localeCode,
+    timerAlertMode: timerAlertMode ?? this.timerAlertMode,
+    selectedAlertSound: selectedAlertSound ?? this.selectedAlertSound,
   );
 
   Map<String, Object> toJson() => {
-    'version': 2,
+    'version': 3,
     'themeMode': themeMode.name,
     'completionAlertEnabled': completionAlertEnabled,
     'dailyResetHour': dailyResetHour,
@@ -47,10 +65,16 @@ class AppSettings {
     'defaultPlanSeconds': defaultPlanSeconds,
     'confirmBeforeDelete': confirmBeforeDelete,
     'homeHeadline': homeHeadline,
+    'homeHeadlineCustomized': homeHeadlineCustomized,
+    'localeCode': localeCode,
+    'timerAlertMode': timerAlertMode,
+    'selectedAlertSound': selectedAlertSound,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
-    if (json.containsKey('version') && json['version'] != 2) {
+    if (json.containsKey('version') &&
+        json['version'] != 2 &&
+        json['version'] != 3) {
       throw const FormatException('Unknown settings version');
     }
     final mode = json['themeMode'];
@@ -97,6 +121,22 @@ class AppSettings {
           ? json['confirmBeforeDelete'] as bool
           : true,
       homeHeadline: headline is String ? headline : '每天进步一点点',
+      homeHeadlineCustomized: json['homeHeadlineCustomized'] is bool
+          ? json['homeHeadlineCustomized'] as bool
+          : headline is String && headline != '每天进步一点点',
+      localeCode: json['localeCode'] == 'en' ? 'en' : 'zh',
+      timerAlertMode:
+          const ['sound', 'vibration', 'none'].contains(json['timerAlertMode'])
+          ? json['timerAlertMode'] as String
+          : json['completionAlertEnabled'] == false
+          ? 'none'
+          : 'sound',
+      selectedAlertSound:
+          json['selectedAlertSound'] is int &&
+              (json['selectedAlertSound'] as int) >= 1 &&
+              (json['selectedAlertSound'] as int) <= 5
+          ? json['selectedAlertSound'] as int
+          : 1,
     );
   }
 }

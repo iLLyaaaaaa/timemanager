@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 class StudyIconOption {
   const StudyIconOption(this.id, this.label, this.icon);
 
@@ -49,3 +51,40 @@ StudyIconOption studyIconFor(String id) {
   }
   return studyIconOptions.last;
 }
+
+String localizedStudyIconLabel(AppLocalizations l10n, String id) =>
+    switch (id) {
+      'language' => l10n.iconLanguage,
+      'translate' => l10n.iconTranslate,
+      'menu_book' => l10n.iconTextbook,
+      'record_voice_over' => l10n.iconSpeaking,
+      'calculate' => l10n.iconCalculate,
+      'functions' => l10n.iconFunctions,
+      'science' => l10n.iconScience,
+      'analytics' => l10n.iconAnalytics,
+      'code' => l10n.iconCode,
+      'terminal' => l10n.iconTerminal,
+      'computer' => l10n.iconComputer,
+      'developer_mode' => l10n.iconDevelopment,
+      'memory' => l10n.iconMemory,
+      'book' => l10n.iconBook,
+      'auto_stories' => l10n.iconReading,
+      'library_books' => l10n.iconLibrary,
+      'fitness_center' => l10n.iconFitness,
+      'directions_run' => l10n.iconRunning,
+      'sports' => l10n.iconSports,
+      'music_note' => l10n.iconMusic,
+      'headphones' => l10n.iconHeadphones,
+      'checklist' => l10n.iconChecklist,
+      'schedule' => l10n.iconSchedule,
+      'work' => l10n.iconWork,
+      'school' => l10n.iconSchool,
+      'psychology' => l10n.iconPsychology,
+      'lightbulb' => l10n.iconLightbulb,
+      'star' => l10n.iconStar,
+      'favorite' => l10n.iconFavorite,
+      'flag' => l10n.iconFlag,
+      'bolt' => l10n.iconBolt,
+      'category' => l10n.iconOther,
+      _ => l10n.iconOther,
+    };

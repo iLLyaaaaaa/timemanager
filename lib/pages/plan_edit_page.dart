@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
@@ -71,7 +73,11 @@ class _PlanEditPageState extends State<PlanEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? '编辑计划' : '新增计划'),
+        title: Text(
+          isEditing
+              ? AppLocalizations.of(context)!.editPlan
+              : AppLocalizations.of(context)!.addPlan,
+        ),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
       ),
@@ -84,13 +90,14 @@ class _PlanEditPageState extends State<PlanEditPage> {
               key: const ValueKey('plan_name'),
               controller: _nameController,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: '计划名称',
-                hintText: '例如：阅读、Python、健身',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.planName,
+                hintText: AppLocalizations.of(context)!.planNameHint,
                 border: OutlineInputBorder(),
               ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? '请输入计划名称' : null,
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? AppLocalizations.of(context)!.planNameRequired
+                  : null,
             ),
             const SizedBox(height: 16),
             StudyDurationInput(
@@ -99,7 +106,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
                   widget.plan?.plannedSeconds ??
                   widget.settings?.settings.defaultPlanSeconds ??
                   3600,
-              label: '每日计划时长',
+              label: AppLocalizations.of(context)!.dailyPlanDuration,
             ),
             const SizedBox(height: 24),
             StudyIconPicker(
@@ -112,7 +119,10 @@ class _PlanEditPageState extends State<PlanEditPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: FilledButton(onPressed: _save, child: const Text('保存计划')),
+          child: FilledButton(
+            onPressed: _save,
+            child: Text(AppLocalizations.of(context)!.savePlan),
+          ),
         ),
       ),
     );

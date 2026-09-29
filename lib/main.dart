@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'data/study_plan_store.dart';
 import 'data/study_plan_storage.dart';
 import 'data/settings_store.dart';
 import 'pages/study_home_page.dart';
+import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +64,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return AnimatedBuilder(
       animation: _settings,
       builder: (context, _) => MaterialApp(
-        title: '学习助手',
+        onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+        locale: Locale(_settings.settings.localeCode),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
         debugShowCheckedModeBanner: false,
         themeMode: _settings.settings.themeMode,
         theme: ThemeData(

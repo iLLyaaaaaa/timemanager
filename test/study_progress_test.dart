@@ -1,3 +1,5 @@
+import 'support/localized_app.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -225,7 +227,7 @@ void main() {
     store.updatePlan(store.plans.single.copyWith(pauseWhenBackgrounded: false));
     var clock = DateTime(2026, 9, 28, 12);
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: StudyTimerPage(store: store, planId: id, now: () => clock),
       ),
     );
@@ -263,7 +265,7 @@ void main() {
     store.startOrResume(firstId);
     store.studyOneSecond(firstId);
     await tester.pumpWidget(
-      MaterialApp(home: PlanManagementPage(store: store)),
+      localizedApp(home: PlanManagementPage(store: store)),
     );
     await tester.tap(find.byKey(ValueKey('background_pause_$secondId')));
     await tester.pump();
@@ -316,7 +318,7 @@ void main() {
     addTearDown(store.dispose);
     store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 90);
     final id = store.plans.single.id;
-    await tester.pumpWidget(MaterialApp(home: StudyHomePage(store: store)));
+    await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('开始学习'));
     await tester.pumpAndSettle();
     expect(find.text('01:30'), findsOneWidget);
@@ -334,7 +336,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(find.text('开始'), findsOneWidget);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('今日剩余 01:28'), findsOneWidget);
     expect(await store.flush(), isTrue);
@@ -355,7 +357,7 @@ void main() {
       store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 60);
       final id = store.plans.single.id;
       await tester.pumpWidget(
-        MaterialApp(
+        localizedApp(
           home: StudyTimerPage(store: store, planId: id),
         ),
       );
@@ -396,7 +398,7 @@ void main() {
       store.studyOneSecond(id);
     }
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: Scaffold(body: StudyStatisticsPage(store: store)),
       ),
     );

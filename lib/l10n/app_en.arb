@@ -1,0 +1,335 @@
+{
+  "@@locale": "en",
+  "appTitle": "Study Assistant",
+  "todayStudy": "Today's Study",
+  "studyStatistics": "Study Statistics",
+  "settings": "Settings",
+  "home": "Home",
+  "statistics": "Statistics",
+  "managePlans": "Manage Plans",
+  "editHomeHeadline": "Edit Home Message",
+  "homeHeadline": "Home Message",
+  "homeHeadlineHint": "Write a short encouragement",
+  "homeHeadlineRequired": "Enter a short message",
+  "cancel": "Cancel",
+  "save": "Save",
+  "headlineSaveFailed": "Could not save the home message. Please try again.",
+  "todayPlan": "Today's Plan",
+  "planLoadFailed": "Could not load plans. Check local data before making changes.",
+  "noPlansHome": "No study plans yet. Tap Manage Plans to add one.",
+  "noPlans": "No study plans yet",
+  "viewProgress": "View Progress",
+  "continueStudy": "Continue",
+  "startStudy": "Start Studying",
+  "planManagement": "Plan Management",
+  "bulkDeleteTitle": "Delete Selected Plans?",
+  "delete": "Delete",
+  "deleteSaveFailed": "Could not save the deletion. Please try again.",
+  "timerSettingSaveFailed": "Could not save the timer setting. Please try again.",
+  "deletePlanTitle": "Delete Plan?",
+  "undo": "Undo",
+  "done": "Done",
+  "bulkManage": "Select Plans",
+  "noPlansManage": "No plans yet. Tap Add Plan to get started.",
+  "backgroundPause": "Auto-pause in Background",
+  "addPlan": "Add Plan",
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All",
+  "editPlan": "Edit Plan",
+  "planName": "Plan Name",
+  "planNameHint": "For example: Reading, Python, Fitness",
+  "planNameRequired": "Enter a plan name",
+  "dailyPlanDuration": "Daily Plan Duration",
+  "savePlan": "Save Plan",
+  "chooseIcon": "Choose Icon",
+  "hours": "Hours",
+  "minutes": "Minutes",
+  "seconds": "Seconds",
+  "durationEmpty": "Enter hours, minutes, and seconds",
+  "durationNonnegative": "Use non-negative whole numbers only",
+  "durationTooLarge": "Duration is too large",
+  "durationRange": "Minutes and seconds must be 0–59",
+  "durationPositive": "Duration must exceed 0 seconds",
+  "todayOverview": "Today's Overview",
+  "planProgress": "Plan Progress",
+  "studyTimer": "Study Timer",
+  "planMissing": "This plan no longer exists",
+  "adjustTime": "Adjust Time",
+  "newRemainingTime": "New Remaining Time",
+  "timeSaveFailed": "Could not save study progress. Please try again.",
+  "remainingTime": "Time Remaining",
+  "studiedTime": "Time Studied",
+  "completedToday": "Today's plan is complete",
+  "focusEncouragement": "Stay focused. Keep going!",
+  "pause": "Pause",
+  "start": "Start",
+  "appearance": "Appearance",
+  "themeMode": "Theme Mode",
+  "followSystem": "Follow System",
+  "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "language": "Language",
+  "chinese": "简体中文",
+  "english": "English",
+  "timing": "Timer",
+  "backgroundPauseHint": "Set this separately for each plan in Manage Plans",
+  "dailyResetTime": "Daily Reset Time",
+  "planSection": "Plans",
+  "defaultPlanDuration": "Default New Plan Duration",
+  "defaultDuration": "Default Duration",
+  "confirmBeforeDelete": "Confirm Before Deleting",
+  "dataManagement": "Data Management",
+  "restoreDefaults": "Restore Default Settings",
+  "clearStudyData": "Clear Study Data",
+  "clearAllData": "Clear All Data",
+  "settingsSaveFailed": "Could not save settings. Please try again.",
+  "restoreDefaultsTitle": "Restore Default Settings?",
+  "restoreDefaultsMessage": "Only settings will be restored. Plans and history stay.",
+  "restore": "Restore",
+  "clearStudyTitle": "Clear Study Data?",
+  "clearStudyMessage": "This deletes today's progress and all study history, but keeps plans. This cannot be undone.",
+  "studyDataSaveFailed": "Could not save study data. Please try again.",
+  "clearAllTitle": "Clear All Data?",
+  "clearAllMessage": "All plans, records, and settings will return to their initial state. This cannot be undone.",
+  "continueAction": "Continue",
+  "clearAllAgainTitle": "Confirm Clear All Data Again",
+  "clearAllAgainMessage": "Confirm: all custom plans and study records will be deleted.",
+  "confirmClear": "Clear Everything",
+  "dataSaveFailed": "Could not save all data. Please try again.",
+  "timerAlert": "Timer Alert",
+  "alertMode": "Alert Mode",
+  "sound": "Sound",
+  "vibration": "Vibration",
+  "none": "None",
+  "alertSound": "Alert Sound",
+  "preview": "Preview",
+  "sound1": "Soft Bell",
+  "sound2": "Clear Bell",
+  "sound3": "Digital",
+  "sound4": "Gentle Chime",
+  "sound5": "Short Beep",
+  "notificationPermissionHint": "Notification or exact alarm access is off. Background completion alerts may be delayed or unavailable.",
+  "notificationPermissionAction": "Enable Notifications",
+  "studyCompleteTitle": "Study Session Complete",
+  "completeSnack": "Great work! Today's study plan is complete!",
+  "iconLanguage": "Language",
+  "iconTranslate": "Translate",
+  "iconTextbook": "Textbook",
+  "iconSpeaking": "Speaking",
+  "iconCalculate": "Calculate",
+  "iconFunctions": "Functions",
+  "iconScience": "Science",
+  "iconAnalytics": "Analytics",
+  "iconCode": "Code",
+  "iconTerminal": "Terminal",
+  "iconComputer": "Computer",
+  "iconDevelopment": "Development",
+  "iconMemory": "Memory",
+  "iconBook": "Book",
+  "iconReading": "Reading",
+  "iconLibrary": "Library",
+  "iconFitness": "Fitness",
+  "iconRunning": "Running",
+  "iconSports": "Sports",
+  "iconMusic": "Music",
+  "iconHeadphones": "Headphones",
+  "iconChecklist": "Checklist",
+  "iconSchedule": "Schedule",
+  "iconWork": "Work",
+  "iconSchool": "School",
+  "iconPsychology": "Thinking",
+  "iconLightbulb": "Ideas",
+  "iconStar": "Star",
+  "iconFavorite": "Favorite",
+  "iconFlag": "Goal",
+  "iconBolt": "Energy",
+  "iconOther": "Other",
+  "homeSummary": "{count} study plans today · {duration}",
+  "@homeSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayRemainingDuration": "Remaining today {duration}",
+  "@todayRemainingDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPlanDuration": "Today's plan {duration}",
+  "@todayPlanDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "planDuration": "Plan {duration}",
+  "@planDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyPlanValue": "Daily plan {duration}",
+  "@dailyPlanValue": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "bulkDeleteConfirm": "Delete the {count} selected plans?",
+  "@bulkDeleteConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletePlanConfirm": "Delete the “{planName}” plan?",
+  "@deletePlanConfirm": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedPlan": "Deleted “{planName}”",
+  "@deletedPlan": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "editPlanTooltip": "Edit {planName}",
+  "@editPlanTooltip": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePlanTooltip": "Delete {planName}",
+  "@deletePlanTooltip": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteSelected": "Delete Selected ({count})",
+  "@deleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentIcon": "Current: {label}",
+  "@currentIcon": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "currentRemaining": "Current remaining {duration}",
+  "@currentRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPlanTotal": "Today's planned duration {duration}",
+  "@todayPlanTotal": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewPlanned": "Total planned today: {duration}",
+  "@overviewPlanned": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewStudied": "Studied today: {duration}",
+  "@overviewStudied": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewRemaining": "Remaining today: {duration}",
+  "@overviewRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewCompletion": "Today's completion: {percent}",
+  "@overviewCompletion": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "statPlanned": "Planned: {duration}",
+  "@statPlanned": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statStudied": "Studied: {duration}",
+  "@statStudied": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statRemaining": "Remaining: {duration}",
+  "@statRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statOver": "Over plan: {duration}",
+  "@statOver": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationBody": "“{planName}” timer has finished",
+  "@notificationBody": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultHomeHeadline": "A little progress every day"
+}

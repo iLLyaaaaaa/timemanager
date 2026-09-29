@@ -1,0 +1,335 @@
+{
+  "@@locale": "zh",
+  "appTitle": "学习助手",
+  "todayStudy": "今日学习",
+  "studyStatistics": "学习统计",
+  "settings": "设置",
+  "home": "首页",
+  "statistics": "统计",
+  "managePlans": "管理计划",
+  "editHomeHeadline": "编辑首页文案",
+  "homeHeadline": "首页文案",
+  "homeHeadlineHint": "写一句鼓励自己的话",
+  "homeHeadlineRequired": "请输入一句简短文案",
+  "cancel": "取消",
+  "save": "保存",
+  "headlineSaveFailed": "首页文案暂未写入本地，请稍后重试",
+  "todayPlan": "今日计划",
+  "planLoadFailed": "计划数据读取失败，请先检查本地数据，避免覆盖旧记录。",
+  "noPlansHome": "还没有学习计划，点击右上角“管理计划”新增。",
+  "noPlans": "还没有学习计划",
+  "viewProgress": "查看进度",
+  "continueStudy": "继续学习",
+  "startStudy": "开始学习",
+  "planManagement": "计划管理",
+  "bulkDeleteTitle": "批量删除计划？",
+  "delete": "删除",
+  "deleteSaveFailed": "删除结果暂未写入本地，请稍后重试",
+  "timerSettingSaveFailed": "计时设置暂未写入本地，请稍后重试",
+  "deletePlanTitle": "删除计划？",
+  "undo": "撤销",
+  "done": "完成",
+  "bulkManage": "批量管理",
+  "noPlansManage": "还没有计划，点击“新增计划”开始吧。",
+  "backgroundPause": "后台自动暂停",
+  "addPlan": "新增计划",
+  "selectAll": "全选",
+  "deselectAll": "取消全选",
+  "editPlan": "编辑计划",
+  "planName": "计划名称",
+  "planNameHint": "例如：阅读、Python、健身",
+  "planNameRequired": "请输入计划名称",
+  "dailyPlanDuration": "每日计划时长",
+  "savePlan": "保存计划",
+  "chooseIcon": "选择图标",
+  "hours": "小时",
+  "minutes": "分钟",
+  "seconds": "秒",
+  "durationEmpty": "请填写小时、分钟和秒",
+  "durationNonnegative": "时间只能输入非负整数",
+  "durationTooLarge": "时间数值过大，请缩短时长",
+  "durationRange": "分钟和秒须在 0 到 59 之间",
+  "durationPositive": "总时长必须大于 0 秒",
+  "todayOverview": "今日总览",
+  "planProgress": "各计划进度",
+  "studyTimer": "学习计时",
+  "planMissing": "这个计划已不存在",
+  "adjustTime": "调整时间",
+  "newRemainingTime": "新的剩余时间",
+  "timeSaveFailed": "学习进度暂未写入本地，请稍后重试",
+  "remainingTime": "剩余时间",
+  "studiedTime": "已学习时间",
+  "completedToday": "今日计划已完成",
+  "focusEncouragement": "专注当下，继续加油",
+  "pause": "暂停",
+  "start": "开始",
+  "appearance": "外观",
+  "themeMode": "主题模式",
+  "followSystem": "跟随系统",
+  "lightMode": "浅色模式",
+  "darkMode": "深色模式",
+  "language": "语言",
+  "chinese": "简体中文",
+  "english": "English",
+  "timing": "计时",
+  "backgroundPauseHint": "可在计划管理中分别设置每个计划",
+  "dailyResetTime": "每日重置时间",
+  "planSection": "计划",
+  "defaultPlanDuration": "新增计划默认时长",
+  "defaultDuration": "默认时长",
+  "confirmBeforeDelete": "删除计划前确认",
+  "dataManagement": "数据管理",
+  "restoreDefaults": "恢复默认设置",
+  "clearStudyData": "清空学习数据",
+  "clearAllData": "清空全部数据",
+  "settingsSaveFailed": "设置暂未写入本地，请稍后重试",
+  "restoreDefaultsTitle": "恢复默认设置？",
+  "restoreDefaultsMessage": "只恢复设置，不删除学习计划和历史记录。",
+  "restore": "恢复",
+  "clearStudyTitle": "清空学习数据？",
+  "clearStudyMessage": "这会清空今日进度和全部学习历史，保留现有计划。此操作无法撤销。",
+  "studyDataSaveFailed": "学习数据暂未写入本地，请稍后重试",
+  "clearAllTitle": "清空全部数据？",
+  "clearAllMessage": "所有计划、学习记录和设置都会恢复到首次安装状态。此操作无法撤销。",
+  "continueAction": "继续",
+  "clearAllAgainTitle": "再次确认清空全部数据",
+  "clearAllAgainMessage": "请确认：这会删除所有自定义计划和学习记录。",
+  "confirmClear": "确认清空",
+  "dataSaveFailed": "数据暂未全部写入本地，请稍后重试",
+  "timerAlert": "倒计时提醒",
+  "alertMode": "提醒方式",
+  "sound": "铃声",
+  "vibration": "震动",
+  "none": "无提醒",
+  "alertSound": "铃声选择",
+  "preview": "试听",
+  "sound1": "柔和铃声",
+  "sound2": "清脆铃声",
+  "sound3": "数字提示",
+  "sound4": "轻柔提示",
+  "sound5": "短提示音",
+  "notificationPermissionHint": "通知或精确闹钟权限未开启，后台完成提醒可能延迟或无法显示。",
+  "notificationPermissionAction": "开启通知权限",
+  "studyCompleteTitle": "学习计划完成",
+  "completeSnack": "太棒了，今日学习计划完成！",
+  "iconLanguage": "语言",
+  "iconTranslate": "翻译",
+  "iconTextbook": "课本",
+  "iconSpeaking": "口语",
+  "iconCalculate": "计算",
+  "iconFunctions": "函数",
+  "iconScience": "科学",
+  "iconAnalytics": "分析",
+  "iconCode": "代码",
+  "iconTerminal": "终端",
+  "iconComputer": "电脑",
+  "iconDevelopment": "开发",
+  "iconMemory": "芯片",
+  "iconBook": "书籍",
+  "iconReading": "阅读",
+  "iconLibrary": "图书",
+  "iconFitness": "健身",
+  "iconRunning": "跑步",
+  "iconSports": "运动",
+  "iconMusic": "音乐",
+  "iconHeadphones": "耳机",
+  "iconChecklist": "清单",
+  "iconSchedule": "日程",
+  "iconWork": "工作",
+  "iconSchool": "学习",
+  "iconPsychology": "思考",
+  "iconLightbulb": "灵感",
+  "iconStar": "星星",
+  "iconFavorite": "喜爱",
+  "iconFlag": "目标",
+  "iconBolt": "能量",
+  "iconOther": "其他",
+  "homeSummary": "今天有 {count} 项学习计划 · 共 {duration}",
+  "@homeSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayRemainingDuration": "今日剩余 {duration}",
+  "@todayRemainingDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPlanDuration": "今日计划 {duration}",
+  "@todayPlanDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "planDuration": "计划 {duration}",
+  "@planDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyPlanValue": "每日计划 {duration}",
+  "@dailyPlanValue": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "bulkDeleteConfirm": "确定删除已选择的 {count} 个计划吗？",
+  "@bulkDeleteConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletePlanConfirm": "确定删除“{planName}”计划吗？",
+  "@deletePlanConfirm": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedPlan": "已删除“{planName}”计划",
+  "@deletedPlan": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "editPlanTooltip": "编辑{planName}计划",
+  "@editPlanTooltip": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePlanTooltip": "删除{planName}计划",
+  "@deletePlanTooltip": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteSelected": "删除选中 ({count})",
+  "@deleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentIcon": "当前：{label}",
+  "@currentIcon": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "currentRemaining": "当前剩余 {duration}",
+  "@currentRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPlanTotal": "今日计划总时长 {duration}",
+  "@todayPlanTotal": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewPlanned": "今日计划总时长：{duration}",
+  "@overviewPlanned": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewStudied": "今日已学习：{duration}",
+  "@overviewStudied": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewRemaining": "今日剩余：{duration}",
+  "@overviewRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewCompletion": "今日完成率：{percent}",
+  "@overviewCompletion": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "statPlanned": "计划：{duration}",
+  "@statPlanned": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statStudied": "已学习：{duration}",
+  "@statStudied": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statRemaining": "剩余：{duration}",
+  "@statRemaining": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "statOver": "超出计划：{duration}",
+  "@statOver": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationBody": "“{planName}”的计时已完成",
+  "@notificationBody": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultHomeHeadline": "每天进步一点点"
+}

@@ -1,3 +1,5 @@
+import 'support/localized_app.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hello_app/data/study_plan_store.dart';
@@ -26,7 +28,7 @@ void main() {
   ) async {
     final store = StudyPlanStore();
     addTearDown(store.dispose);
-    await tester.pumpWidget(MaterialApp(home: StudyHomePage(store: store)));
+    await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('新增计划'));
@@ -67,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.plans.single.id, id);
     expect(store.plans.single.plannedSeconds, 91);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     final card = find.byKey(ValueKey('plan_card_$id'));
     expect(
@@ -83,7 +85,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('01:30'), findsOneWidget);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
@@ -100,7 +102,7 @@ void main() {
     store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 3);
     final id = store.plans.single.id;
     await tester.pumpWidget(
-      MaterialApp(
+      localizedApp(
         home: StudyTimerPage(store: store, planId: id),
       ),
     );
@@ -131,7 +133,7 @@ void main() {
     final second = store.plans.last.id;
     store.startOrResume(second);
     store.studyOneSecond(second);
-    await tester.pumpWidget(MaterialApp(home: StudyHomePage(store: store)));
+    await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     final firstButton = find.byKey(ValueKey('start_plan_$first'));
     final secondButton = find.byKey(ValueKey('start_plan_$second'));
     expect(
@@ -184,7 +186,7 @@ void main() {
     final ids = store.plans.map((plan) => plan.id).toList();
     store.startOrResume(ids.first);
     store.studyOneSecond(ids.first);
-    await tester.pumpWidget(MaterialApp(home: StudyHomePage(store: store)));
+    await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('批量管理'));
@@ -220,7 +222,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.plans.map((plan) => plan.id), [ids[1]]);
     expect(store.records.single.planId, ids[0]);
-    await tester.pageBack();
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('plan_card_${ids[1]}')), findsOneWidget);
     expect(find.byKey(ValueKey('plan_card_${ids[0]}')), findsNothing);
