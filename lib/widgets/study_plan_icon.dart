@@ -6,6 +6,8 @@ import '../data/study_icon_catalog.dart';
 import '../models/study_plan.dart';
 
 class StudyPlanIcon extends StatelessWidget {
+  static const double cardTileSize = 112;
+
   const StudyPlanIcon({
     super.key,
     required this.plan,
@@ -29,14 +31,14 @@ class StudyPlanIcon extends StatelessWidget {
         child: Center(
           child: Icon(
             studyIconFor(plan.iconId).icon,
-            size: tile * 0.46,
+            size: tile * 0.48,
             color: color ?? colors.onPrimaryContainer,
           ),
         ),
       );
       final path = plan.customIconPath;
       return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: SizedBox.square(
           dimension: tile,
           child: path == null || path.isEmpty

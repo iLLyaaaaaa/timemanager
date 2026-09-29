@@ -103,7 +103,7 @@ class StudyStatisticsPage extends StatelessWidget {
         else
           for (final plan in plans) ...[
             _PlanStatisticsCard(plan: plan),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
           ],
       ],
     );
@@ -123,55 +123,117 @@ class _PlanStatisticsCard extends StatelessWidget {
         : plannedSeconds;
     final completion = _completion(plan.studiedSeconds, plannedSeconds);
     final colors = Theme.of(context).colorScheme;
+    final detailStyle = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(fontSize: 14, height: 1.25, color: colors.onSurfaceVariant);
 
     return Card(
       key: ValueKey('statistics_${plan.id}'),
       margin: EdgeInsets.zero,
-      elevation: 0,
+      elevation: 1,
+      shadowColor: colors.shadow.withValues(alpha: 0.08),
       color: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.55)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                StudyPlanIcon(plan: plan, color: colors.primary),
-                const SizedBox(width: 10),
+                StudyPlanIcon(
+                  key: ValueKey('statistics_icon_${plan.id}'),
+                  plan: plan,
+                  tileSize: StudyPlanIcon.cardTileSize,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    plan.name,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              plan.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: colors.onSurface,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _percent(completion),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.primary,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.of(context)!
+                            .statPlanned(formatStudyDuration(plannedSeconds)),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: detailStyle,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        AppLocalizations.of(context)!.statStudied(
+                          formatStudyDuration(plan.studiedSeconds),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: detailStyle,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.statRemaining(formatStudyDuration(remainingSeconds)),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: detailStyle,
+                      ),
+                      if (plan.studiedSeconds > plannedSeconds) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          AppLocalizations.of(context)!.statOver(
+                            formatStudyDuration(
+                              plan.studiedSeconds - plannedSeconds,
+                            ),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: detailStyle,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                Text(_percent(completion)),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              AppLocalizations.of(context)!
-                  .statPlanned(formatStudyDuration(plannedSeconds)),
-            ),
-            Text(
-              AppLocalizations.of(context)!
-                  .statStudied(formatStudyDuration(plan.studiedSeconds)),
-            ),
-            Text(
-              AppLocalizations.of(context)!
-                  .statRemaining(formatStudyDuration(remainingSeconds)),
-            ),
-            if (plan.studiedSeconds > plannedSeconds)
-              Text(
-                AppLocalizations.of(context)!.statOver(
-                  formatStudyDuration(plan.studiedSeconds - plannedSeconds),
-                ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: completion.clamp(0.0, 1.0),
+                minHeight: 8,
+                color: colors.primary,
+                backgroundColor: colors.surfaceContainerHighest,
               ),
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: completion.clamp(0.0, 1.0),
-              minHeight: 7,
             ),
           ],
         ),

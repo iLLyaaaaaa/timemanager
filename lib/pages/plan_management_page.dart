@@ -91,6 +91,17 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     });
   }
 
+  Future<void> _setBackgroundPause(StudyPlan plan, bool enabled) async {
+    widget.store.updatePlan(plan.copyWith(pauseWhenBackgrounded: enabled));
+    if (!await widget.store.flush() && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.settingsSaveFailed),
+        ),
+      );
+    }
+  }
+
   Future<void> _deleteSelected() async {
     final ids = widget.store.plans
         .where((plan) => _selectedIds.contains(plan.id))
@@ -140,40 +151,6 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
         SnackBar(content: Text(AppLocalizations.of(context)!.deleteSaveFailed)),
       );
     }
-  }
-
-  Future<void> _setBackgroundPause(StudyPlan plan, bool enabled) async {
-    widget.store.updatePlan(plan.copyWith(pauseWhenBackgrounded: enabled));
-    if (!await widget.store.flush() && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.timerSettingSaveFailed),
-        ),
-      );
-    }
-  }
-
-  Future<void> _setSelectedBackgroundPause(bool enabled) async {
-    final ids = widget.store.plans
-        .where((plan) => _selectedIds.contains(plan.id))
-        .map((plan) => plan.id)
-        .toSet();
-    if (ids.isEmpty) return;
-    final count = widget.store.setBackgroundPauseForPlans(ids, enabled);
-    final saved = await widget.store.flush();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          !saved
-              ? l10n.timerSettingSaveFailed
-              : enabled
-              ? l10n.backgroundPauseEnabledCount(count)
-              : l10n.backgroundPauseDisabledCount(count),
-        ),
-      ),
-    );
   }
 
   Future<void> _deletePlan(StudyPlan plan) async {
@@ -258,21 +235,25 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             itemCount: plans.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 18),
             itemBuilder: (context, index) {
               final plan = plans[index];
               return Card(
                 key: ValueKey('manage_plan_${plan.id}'),
                 margin: EdgeInsets.zero,
-                elevation: 0,
-                color: colors.surface,
+                elevation: 2,
+                shadowColor: colors.shadow.withValues(alpha: 0.14),
+                color: colors.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(22),
+                  side: BorderSide(
+                    color: colors.outlineVariant.withValues(alpha: 0.7),
+                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
                       Row(
@@ -280,7 +261,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                         children: [
                           StudyPlanIcon(
                             plan: plan,
-                            tileSize: 80,
+                            tileSize: StudyPlanIcon.cardTileSize,
                             color: colors.primary,
                           ),
                           const SizedBox(width: 12),
@@ -290,56 +271,76 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                               children: [
                                 Text(
                                   plan.name,
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.onSurface,
+                                      ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   AppLocalizations.of(context)!.dailyPlanValue(
                                     formatStudyDuration(plan.plannedSeconds),
                                   ),
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: colors.onSurfaceVariant,
+                                      ),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: _bulkMode
-                                      ? [
-                                          Checkbox(
-                                            key: ValueKey(
-                                              'select_plan_${plan.id}',
-                                            ),
-                                            value: _selectedIds.contains(
-                                              plan.id,
-                                            ),
-                                            onChanged: (_) =>
-                                                _toggleSelection(plan.id),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: _bulkMode
+                                      ? Checkbox(
+                                          key: ValueKey(
+                                            'select_plan_${plan.id}',
                                           ),
-                                        ]
-                                      : [
-                                          IconButton(
-                                            onPressed: () => _openEditor(plan),
-                                            tooltip: AppLocalizations.of(
-                                              context,
-                                            )!.editPlanTooltip(plan.name),
-                                            icon: const Icon(
-                                              Icons.edit_outlined,
+                                          value: _selectedIds.contains(plan.id),
+                                          onChanged: (_) =>
+                                              _toggleSelection(plan.id),
+                                        )
+                                      : Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              onPressed: () =>
+                                                  _openEditor(plan),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 44,
+                                                minHeight: 44,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              tooltip: AppLocalizations.of(
+                                                context,
+                                              )!.editPlanTooltip(plan.name),
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                              ),
                                             ),
-                                          ),
-                                          IconButton(
-                                            onPressed: () => _deletePlan(plan),
-                                            tooltip: AppLocalizations.of(
-                                              context,
-                                            )!.deletePlanTooltip(plan.name),
-                                            icon: const Icon(
-                                              Icons.delete_outline_rounded,
+                                            IconButton(
+                                              onPressed: () =>
+                                                  _deletePlan(plan),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 44,
+                                                minHeight: 44,
+                                              ),
+                                              padding: const EdgeInsets.all(8),
+                                              tooltip: AppLocalizations.of(
+                                                context,
+                                              )!.deletePlanTooltip(plan.name),
+                                              icon: const Icon(
+                                                Icons.delete_outline_rounded,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                 ),
                               ],
                             ),
@@ -347,13 +348,14 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                         ],
                       ),
                       if (!_bulkMode) ...[
-                        const Divider(height: 16),
+                        const Divider(height: 20),
                         SwitchListTile(
                           key: ValueKey('background_pause_${plan.id}'),
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             AppLocalizations.of(context)!.backgroundPause,
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           value: plan.pauseWhenBackgrounded,
                           onChanged: (value) =>
@@ -406,40 +408,14 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        SizedBox(
-                          width: double.infinity,
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                key: const ValueKey(
-                                  'bulk_enable_background_pause',
-                                ),
-                                onPressed: selectedCount == 0
-                                    ? null
-                                    : () => _setSelectedBackgroundPause(true),
-                                icon: const Icon(Icons.pause_circle_outline),
-                                label: Text(l10n.enableBackgroundPause),
-                              ),
-                              OutlinedButton.icon(
-                                key: const ValueKey(
-                                  'bulk_disable_background_pause',
-                                ),
-                                onPressed: selectedCount == 0
-                                    ? null
-                                    : () => _setSelectedBackgroundPause(false),
-                                icon: const Icon(Icons.play_circle_outline),
-                                label: Text(l10n.disableBackgroundPause),
-                              ),
-                              FilledButton.icon(
-                                onPressed: selectedCount == 0
-                                    ? null
-                                    : _deleteSelected,
-                                icon: const Icon(Icons.delete_outline_rounded),
-                                label: Text(l10n.deleteSelected(selectedCount)),
-                              ),
-                            ],
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            onPressed: selectedCount == 0
+                                ? null
+                                : _deleteSelected,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: Text(l10n.deleteSelected(selectedCount)),
                           ),
                         ),
                       ],

@@ -25,15 +25,12 @@
   "bulkDeleteTitle": "Delete Selected Plans?",
   "delete": "Delete",
   "deleteSaveFailed": "Could not save the deletion. Please try again.",
-  "timerSettingSaveFailed": "Could not save the timer setting. Please try again.",
   "deletePlanTitle": "Delete Plan?",
   "undo": "Undo",
   "done": "Done",
   "bulkManage": "Select Plans",
   "noPlansManage": "No plans yet. Tap Add Plan to get started.",
-  "backgroundPause": "Auto-pause in Background",
-  "enableBackgroundPause": "Enable background auto-pause",
-  "disableBackgroundPause": "Disable background auto-pause",
+  "backgroundPause": "Background auto-pause",
   "addPlan": "Add Plan",
   "selectAll": "Select All",
   "deselectAll": "Deselect All",
@@ -74,7 +71,6 @@
   "chinese": "简体中文",
   "english": "English",
   "timing": "Timer",
-  "backgroundPauseHint": "Set this separately for each plan in Manage Plans",
   "dailyResetTime": "Daily Reset Time",
   "planSection": "Plans",
   "defaultPlanDuration": "Default New Plan Duration",
@@ -199,18 +195,6 @@
   },
   "selectedCount": "{count} selected",
   "@selectedCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "backgroundPauseEnabledCount": "Background auto-pause enabled for {count} plans.",
-  "@backgroundPauseEnabledCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "backgroundPauseDisabledCount": "Background auto-pause disabled for {count} plans.",
-  "@backgroundPauseDisabledCount": {
     "placeholders": {
       "count": { "type": "int" }
     }

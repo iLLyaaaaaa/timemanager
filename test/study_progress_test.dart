@@ -335,11 +335,20 @@ void main() {
     await tester.pumpWidget(
       localizedApp(home: PlanManagementPage(store: store)),
     );
-    await tester.tap(find.byKey(ValueKey('background_pause_$secondId')));
+    final secondSwitch = find.byKey(ValueKey('background_pause_$secondId'));
+    await tester.ensureVisible(secondSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(secondSwitch);
     await tester.pump();
+    expect(find.byKey(ValueKey('background_pause_$firstId')), findsOneWidget);
+    expect(tester.widget<SwitchListTile>(secondSwitch).value, isFalse);
     expect(store.planById(firstId)!.pauseWhenBackgrounded, isTrue);
     expect(store.planById(secondId)!.pauseWhenBackgrounded, isFalse);
-    expect(await store.flush(), isTrue);
+    await tester.pumpAndSettle();
+    expect(
+      jsonDecode(storage.value!)['plans'][1]['pauseWhenBackgrounded'],
+      isFalse,
+    );
     final reopened = await StudyPlanStore.load(
       storage: storage,
       now: () => today,
@@ -351,76 +360,7 @@ void main() {
     expect(reopened.records.single.planId, firstId);
   });
 
-  testWidgets(
-    'bulk background pause updates only selected plans and persists',
-    (tester) async {
-      final storage = _MemoryStorage();
-      final store = await StudyPlanStore.load(
-        storage: storage,
-        now: () => today,
-      );
-      addTearDown(store.dispose);
-      for (final name in ['日语', '英语', '数学']) {
-        store.addPlan(name: name, iconId: 'book', plannedSeconds: 90);
-      }
-      final ids = store.plans.map((plan) => plan.id).toList();
-      store.startOrResume(ids.first);
-      store.studyOneSecond(ids.first);
-      await tester.pumpWidget(
-        localizedApp(home: PlanManagementPage(store: store)),
-      );
-      await tester.tap(find.text('批量管理'));
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.byKey(const ValueKey('bulk_enable_background_pause')),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.byKey(const ValueKey('bulk_disable_background_pause')),
-            )
-            .onPressed,
-        isNull,
-      );
-      await tester.tap(find.byKey(ValueKey('select_plan_${ids[0]}')));
-      await tester.tap(find.byKey(ValueKey('select_plan_${ids[2]}')));
-      await tester.pump();
-      expect(find.text('已选择 2 项'), findsOneWidget);
-      await tester.tap(
-        find.byKey(const ValueKey('bulk_disable_background_pause')),
-      );
-      await tester.pump();
-      expect(store.planById(ids[0])!.pauseWhenBackgrounded, isFalse);
-      expect(store.planById(ids[1])!.pauseWhenBackgrounded, isTrue);
-      expect(store.planById(ids[2])!.pauseWhenBackgrounded, isFalse);
-      expect(find.text('已为 2 个计划关闭后台自动暂停'), findsOneWidget);
-      expect(await store.flush(), isTrue);
-      final reopened = await StudyPlanStore.load(
-        storage: storage,
-        now: () => today,
-      );
-      addTearDown(reopened.dispose);
-      expect(reopened.planById(ids[0])!.pauseWhenBackgrounded, isFalse);
-      expect(reopened.planById(ids[1])!.pauseWhenBackgrounded, isTrue);
-      expect(reopened.planById(ids[2])!.pauseWhenBackgrounded, isFalse);
-      expect(reopened.planById(ids[0])!.studiedSeconds, 1);
-      await tester.tap(
-        find.byKey(const ValueKey('bulk_enable_background_pause')),
-      );
-      await tester.pump();
-      expect(store.plans.every((plan) => plan.pauseWhenBackgrounded), isTrue);
-      expect(find.text('已选择 2 项'), findsOneWidget);
-    },
-  );
-
-  testWidgets('80 pixel plan icons fit a narrow management page', (
-    tester,
-  ) async {
+  testWidgets('large plan icons fit a narrow management page', (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -438,13 +378,30 @@ void main() {
       localizedApp(home: PlanManagementPage(store: store)),
     );
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<StudyPlanIcon>(find.byType(StudyPlanIcon)).tileSize,
-      80,
-    );
+    final icon = tester.widget<StudyPlanIcon>(find.byType(StudyPlanIcon));
+    expect(icon.tileSize, 112);
+    final iconRect = tester.getRect(find.byType(StudyPlanIcon));
+    expect(iconRect.width, 112);
+    expect(iconRect.height, 112);
+    expect(find.byType(SwitchListTile), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(
+      localizedApp(
+        home: PlanManagementPage(store: store),
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(
+      localizedApp(home: PlanManagementPage(store: store)),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('批量管理'));
     await tester.pumpAndSettle();
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.text('开启后台自动暂停'), findsNothing);
+    expect(find.text('关闭后台自动暂停'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -558,6 +515,38 @@ void main() {
       expect(find.text('02:00'), findsOneWidget);
     },
   );
+
+  testWidgets('statistics cards use square icons on narrow screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final store = StudyPlanStore(now: () => today);
+    addTearDown(store.dispose);
+    store.addPlan(name: '啊啊啊啊我要草坨', iconId: 'book', plannedSeconds: 3600);
+    final id = store.plans.single.id;
+    for (final locale in [const Locale('zh'), const Locale('en')]) {
+      await tester.pumpWidget(
+        localizedApp(
+          home: Scaffold(body: StudyStatisticsPage(store: store)),
+          locale: locale,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final icon = find.byKey(ValueKey('statistics_icon_$id'));
+      final rect = tester.getRect(icon);
+      expect(rect.width, StudyPlanIcon.cardTileSize);
+      expect(rect.height, StudyPlanIcon.cardTileSize);
+      final title = tester.widget<Text>(find.text('啊啊啊啊我要草坨'));
+      expect(title.maxLines, 1);
+      expect(title.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
+    }
+  });
 
   testWidgets('completion percentage exceeds 100 while bar is capped', (
     tester,

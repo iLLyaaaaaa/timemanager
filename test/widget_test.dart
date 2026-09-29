@@ -7,6 +7,7 @@ import 'package:hello_app/main.dart';
 import 'package:hello_app/pages/study_home_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/widgets/study_plan_card.dart';
+import 'package:hello_app/widgets/study_plan_icon.dart';
 
 void main() {
   testWidgets('fresh install is empty and navigation works', (tester) async {
@@ -151,7 +152,13 @@ void main() {
       final cardRect = tester.getRect(card);
       expect(buttonRect.width, greaterThanOrEqualTo(100));
       expect(buttonRect.height, greaterThanOrEqualTo(44));
-      expect((buttonRect.center.dy - cardRect.center.dy).abs(), lessThan(8));
+      final icon = find.byKey(ValueKey('plan_icon_$id'));
+      final iconRect = tester.getRect(icon);
+      expect(tester.widget<StudyPlanIcon>(icon).tileSize, 112);
+      expect(iconRect.width, 112);
+      expect(iconRect.height, 112);
+      expect(buttonRect.left, greaterThan(iconRect.right));
+      expect(buttonRect.bottom, lessThanOrEqualTo(cardRect.bottom));
       final buttonColor = tester
           .widget<FilledButton>(button)
           .style!
@@ -170,9 +177,43 @@ void main() {
       expect((lighter + 0.05) / (darker + 0.05), greaterThan(3));
     }
     expect(find.byType(StudyPlanCard), findsNWidgets(2));
+    await tester.ensureVisible(secondButton);
+    await tester.pumpAndSettle();
     await tester.tap(secondButton);
     await tester.pumpAndSettle();
     expect(find.text('01:59'), findsOneWidget);
+  });
+
+  testWidgets('square home cards fit a narrow screen in both languages', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
+    addTearDown(store.dispose);
+    store.addPlan(
+      name: '一个比较长的自定义学习计划名称',
+      iconId: 'book',
+      plannedSeconds: 3600,
+    );
+    final id = store.plans.single.id;
+    for (final locale in [const Locale('zh'), const Locale('en')]) {
+      await tester.pumpWidget(
+        localizedApp(
+          home: StudyHomePage(store: store),
+          locale: locale,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final iconRect = tester.getRect(find.byKey(ValueKey('plan_icon_$id')));
+      expect(iconRect.width, 112);
+      expect(iconRect.height, 112);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('batch delete removes only selected plans after confirmation', (
@@ -208,7 +249,10 @@ void main() {
     await tester.tap(find.text('取消全选'));
     await tester.pump();
     await tester.tap(find.byKey(ValueKey('select_plan_${ids[0]}')));
-    await tester.tap(find.byKey(ValueKey('select_plan_${ids[2]}')));
+    final thirdSelection = find.byKey(ValueKey('select_plan_${ids[2]}'));
+    await tester.ensureVisible(thirdSelection);
+    await tester.pumpAndSettle();
+    await tester.tap(thirdSelection);
     await tester.pump();
     await tester.tap(find.text('删除选中 (2)'));
     await tester.pumpAndSettle();

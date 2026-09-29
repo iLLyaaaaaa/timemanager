@@ -88,10 +88,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not save the deletion. Please try again.';
 
   @override
-  String get timerSettingSaveFailed =>
-      'Could not save the timer setting. Please try again.';
-
-  @override
   String get deletePlanTitle => 'Delete Plan?';
 
   @override
@@ -107,13 +103,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPlansManage => 'No plans yet. Tap Add Plan to get started.';
 
   @override
-  String get backgroundPause => 'Auto-pause in Background';
-
-  @override
-  String get enableBackgroundPause => 'Enable background auto-pause';
-
-  @override
-  String get disableBackgroundPause => 'Disable background auto-pause';
+  String get backgroundPause => 'Background auto-pause';
 
   @override
   String get addPlan => 'Add Plan';
@@ -235,10 +225,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timing => 'Timer';
-
-  @override
-  String get backgroundPauseHint =>
-      'Set this separately for each plan in Manage Plans';
 
   @override
   String get dailyResetTime => 'Daily Reset Time';
@@ -492,16 +478,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String selectedCount(int count) {
     return '$count selected';
-  }
-
-  @override
-  String backgroundPauseEnabledCount(int count) {
-    return 'Background auto-pause enabled for $count plans.';
-  }
-
-  @override
-  String backgroundPauseDisabledCount(int count) {
-    return 'Background auto-pause disabled for $count plans.';
   }
 
   @override

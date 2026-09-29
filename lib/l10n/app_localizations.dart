@@ -248,12 +248,6 @@ abstract class AppLocalizations {
   /// **'Could not save the deletion. Please try again.'**
   String get deleteSaveFailed;
 
-  /// No description provided for @timerSettingSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save the timer setting. Please try again.'**
-  String get timerSettingSaveFailed;
-
   /// No description provided for @deletePlanTitle.
   ///
   /// In en, this message translates to:
@@ -287,20 +281,8 @@ abstract class AppLocalizations {
   /// No description provided for @backgroundPause.
   ///
   /// In en, this message translates to:
-  /// **'Auto-pause in Background'**
+  /// **'Background auto-pause'**
   String get backgroundPause;
-
-  /// No description provided for @enableBackgroundPause.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable background auto-pause'**
-  String get enableBackgroundPause;
-
-  /// No description provided for @disableBackgroundPause.
-  ///
-  /// In en, this message translates to:
-  /// **'Disable background auto-pause'**
-  String get disableBackgroundPause;
 
   /// No description provided for @addPlan.
   ///
@@ -541,12 +523,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Timer'**
   String get timing;
-
-  /// No description provided for @backgroundPauseHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Set this separately for each plan in Manage Plans'**
-  String get backgroundPauseHint;
 
   /// No description provided for @dailyResetTime.
   ///
@@ -1015,18 +991,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} selected'**
   String selectedCount(int count);
-
-  /// No description provided for @backgroundPauseEnabledCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Background auto-pause enabled for {count} plans.'**
-  String backgroundPauseEnabledCount(int count);
-
-  /// No description provided for @backgroundPauseDisabledCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Background auto-pause disabled for {count} plans.'**
-  String backgroundPauseDisabledCount(int count);
 
   /// No description provided for @deletePlanConfirm.
   ///

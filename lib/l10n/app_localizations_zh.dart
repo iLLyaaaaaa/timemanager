@@ -85,9 +85,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteSaveFailed => '删除结果暂未写入本地，请稍后重试';
 
   @override
-  String get timerSettingSaveFailed => '计时设置暂未写入本地，请稍后重试';
-
-  @override
   String get deletePlanTitle => '删除计划？';
 
   @override
@@ -104,12 +101,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backgroundPause => '后台自动暂停';
-
-  @override
-  String get enableBackgroundPause => '开启后台自动暂停';
-
-  @override
-  String get disableBackgroundPause => '关闭后台自动暂停';
 
   @override
   String get addPlan => '新增计划';
@@ -230,9 +221,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get timing => '计时';
-
-  @override
-  String get backgroundPauseHint => '可在计划管理中分别设置每个计划';
 
   @override
   String get dailyResetTime => '每日重置时间';
@@ -480,16 +468,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String selectedCount(int count) {
     return '已选择 $count 项';
-  }
-
-  @override
-  String backgroundPauseEnabledCount(int count) {
-    return '已为 $count 个计划开启后台自动暂停';
-  }
-
-  @override
-  String backgroundPauseDisabledCount(int count) {
-    return '已为 $count 个计划关闭后台自动暂停';
   }
 
   @override

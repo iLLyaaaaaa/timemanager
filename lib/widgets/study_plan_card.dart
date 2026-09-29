@@ -29,92 +29,104 @@ class StudyPlanCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       color: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          height: 92,
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: StudyPlanIcon(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StudyPlanIcon(
                   plan: plan,
                   key: ValueKey('plan_icon_${plan.id}'),
-                  size: 29,
+                  tileSize: StudyPlanIcon.cardTileSize,
                   color: colors.primary,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      status,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: plan.hasStartedToday ? colors.primary : null,
-                        fontWeight: plan.hasStartedToday
-                            ? FontWeight.w600
-                            : null,
-                      ),
-                    ),
-                    if (plan.hasStartedToday)
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        AppLocalizations.of(context)!.planDuration(
-                          formatStudyDuration(plan.plannedSeconds),
-                        ),
+                        plan.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface,
+                        ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 104,
-                height: 48,
-                child: FilledButton(
-                  key: ValueKey('start_plan_${plan.id}'),
-                  onPressed: onStart,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        status,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          color: colors.secondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (plan.hasStartedToday)
+                        Text(
+                          AppLocalizations.of(context)!.planDuration(
+                            formatStudyDuration(plan.plannedSeconds),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontSize: 14,
+                                color: colors.onSurfaceVariant,
+                              ),
+                        ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width:
+                              (constraints.maxWidth -
+                                      StudyPlanIcon.cardTileSize -
+                                      12)
+                                  .clamp(0.0, 112.0),
+                          height: 44,
+                          child: FilledButton(
+                            key: ValueKey('start_plan_${plan.id}'),
+                            onPressed: onStart,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colors.primary,
+                              foregroundColor: colors.onPrimary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              plan.isCompletedToday
+                                  ? AppLocalizations.of(context)!.viewProgress
+                                  : plan.hasStartedToday
+                                  ? AppLocalizations.of(context)!.continueStudy
+                                  : AppLocalizations.of(context)!.startStudy,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    plan.isCompletedToday
-                        ? AppLocalizations.of(context)!.viewProgress
-                        : plan.hasStartedToday
-                        ? AppLocalizations.of(context)!.continueStudy
-                        : AppLocalizations.of(context)!.startStudy,
-                    maxLines: 1,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
       ),
     );

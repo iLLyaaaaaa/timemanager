@@ -25,15 +25,12 @@
   "bulkDeleteTitle": "批量删除计划？",
   "delete": "删除",
   "deleteSaveFailed": "删除结果暂未写入本地，请稍后重试",
-  "timerSettingSaveFailed": "计时设置暂未写入本地，请稍后重试",
   "deletePlanTitle": "删除计划？",
   "undo": "撤销",
   "done": "完成",
   "bulkManage": "批量管理",
   "noPlansManage": "还没有计划，点击“新增计划”开始吧。",
   "backgroundPause": "后台自动暂停",
-  "enableBackgroundPause": "开启后台自动暂停",
-  "disableBackgroundPause": "关闭后台自动暂停",
   "addPlan": "新增计划",
   "selectAll": "全选",
   "deselectAll": "取消全选",
@@ -74,7 +71,6 @@
   "chinese": "简体中文",
   "english": "English",
   "timing": "计时",
-  "backgroundPauseHint": "可在计划管理中分别设置每个计划",
   "dailyResetTime": "每日重置时间",
   "planSection": "计划",
   "defaultPlanDuration": "新增计划默认时长",
@@ -199,18 +195,6 @@
   },
   "selectedCount": "已选择 {count} 项",
   "@selectedCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "backgroundPauseEnabledCount": "已为 {count} 个计划开启后台自动暂停",
-  "@backgroundPauseEnabledCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "backgroundPauseDisabledCount": "已为 {count} 个计划关闭后台自动暂停",
-  "@backgroundPauseDisabledCount": {
     "placeholders": {
       "count": { "type": "int" }
     }
