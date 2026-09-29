@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-import '../data/study_icon_catalog.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
+import 'study_plan_icon.dart';
 
 class StudyPlanCard extends StatelessWidget {
   const StudyPlanCard({super.key, required this.plan, required this.onStart});
@@ -43,9 +43,10 @@ class StudyPlanCard extends StatelessWidget {
                   color: colors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(
-                  studyIconFor(plan.iconId).icon,
+                child: StudyPlanIcon(
+                  plan: plan,
                   key: ValueKey('plan_icon_${plan.id}'),
+                  size: 29,
                   color: colors.primary,
                 ),
               ),

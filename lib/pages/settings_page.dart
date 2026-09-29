@@ -9,6 +9,8 @@ import '../data/study_plan_store.dart';
 import '../utils/study_duration.dart';
 import '../widgets/study_duration_input.dart';
 import '../services/timer_alert_service.dart';
+import '../services/local_media_store.dart';
+import 'sound_trim_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
@@ -30,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
   SettingsStore get settings => widget.settings;
   StudyPlanStore get plans => widget.plans;
   late final TimerAlertService _alerts = widget.alerts ?? TimerAlertService();
+  final _media = LocalMediaStore();
   bool? _notificationsAllowed;
   bool? _exactAlarmsAllowed;
 
@@ -47,6 +50,22 @@ class _SettingsPageState extends State<SettingsPage> {
         _notificationsAllowed = enabled;
         _exactAlarmsAllowed = exact;
       });
+    }
+  }
+
+  Future<void> _syncRunningNotifications() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    for (final plan in plans.plans) {
+      final sessionId = plan.sessionId;
+      if (!plan.isRunning || sessionId == null) continue;
+      await _alerts.cancelBackgroundCompletion(sessionId);
+      if (!mounted) return;
+      await _alerts.scheduleBackgroundCompletion(
+        plan: plan,
+        settings: settings.settings,
+        l10n: l10n,
+      );
     }
   }
 
@@ -124,6 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!context.mounted) return;
     settings.update(settings.settings.copyWith(timerAlertMode: selected));
     await _saveSettings(context);
+    await _syncRunningNotifications();
     if (selected != 'none') await _refreshNotificationPermission();
   }
 
@@ -134,6 +154,84 @@ class _SettingsPageState extends State<SettingsPage> {
       await _alerts.requestExactAlarmPermission();
     }
     await _refreshNotificationPermission();
+  }
+
+  Future<void> _chooseCustomSound() async {
+    PickedLocalSound? picked;
+    try {
+      picked = await _media.chooseSound();
+      if (picked == null || !mounted) return;
+      await _alerts.stopPreview();
+      if (!mounted) return;
+      final selection = await Navigator.of(context).push<SoundTrimSelection>(
+        MaterialPageRoute(builder: (_) => SoundTrimPage(sound: picked!)),
+      );
+      if (selection == null || !mounted) return;
+      final chosen = await _media.saveTrimmedSound(
+        picked,
+        startMilliseconds: selection.startMilliseconds,
+        endMilliseconds: selection.endMilliseconds,
+      );
+      if (!mounted) {
+        await _media.deleteIfManaged(chosen.path, 'custom_sounds');
+        return;
+      }
+      final previousSettings = settings.settings;
+      final oldPath = settings.settings.customSoundPath;
+      settings.update(
+        settings.settings.copyWith(
+          soundSource: 'custom',
+          customSoundPath: chosen.path,
+          customSoundName: chosen.name,
+        ),
+      );
+      final saved = await settings.flush();
+      if (saved) {
+        await _syncRunningNotifications();
+        await _media.deleteIfManaged(oldPath, 'custom_sounds');
+      } else if (mounted) {
+        settings.update(previousSettings);
+        await _media.deleteIfManaged(chosen.path, 'custom_sounds');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.settingsSaveFailed),
+          ),
+        );
+      }
+    } on UnsupportedNcmSound {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.ncmUnsupported)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.invalidLocalSound),
+          ),
+        );
+      }
+    } finally {
+      if (picked != null) await _media.deleteTemporarySound(picked);
+    }
+  }
+
+  Future<void> _previewSound({int? builtin, String? customPath}) async {
+    try {
+      if (customPath != null) {
+        await _alerts.previewCustom(customPath);
+      } else if (builtin != null) {
+        await _alerts.preview(builtin);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.previewFailed)),
+        );
+      }
+    }
   }
 
   Future<void> _saveSettings(BuildContext context) async {
@@ -276,8 +374,13 @@ class _SettingsPageState extends State<SettingsPage> {
       action: AppLocalizations.of(context)!.restore,
     );
     if (!confirmed || !context.mounted) return;
+    final previousSound = settings.settings.customSoundPath;
     settings.restoreDefaults();
     await _saveSettings(context);
+    await _syncRunningNotifications();
+    if (await settings.flush()) {
+      await _media.deleteIfManaged(previousSound, 'custom_sounds');
+    }
   }
 
   Future<void> _clearLearningData(BuildContext context) async {
@@ -289,6 +392,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (!confirmed || !context.mounted) return;
     plans.clearLearningData();
+    unawaited(_alerts.cancelAllCompletions());
     if (!await plans.flush() && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -314,8 +418,10 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (!second || !context.mounted) return;
     plans.clearAllData();
+    unawaited(_alerts.cancelAllCompletions());
     settings.restoreDefaults();
     final saved = await Future.wait([plans.flush(), settings.flush()]);
+    if (!saved.contains(false)) await _media.clearAll();
     if (saved.contains(false) && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.dataSaveFailed)),
@@ -365,7 +471,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _section(context, AppLocalizations.of(context)!.timing, [
           ListTile(
             title: Text(AppLocalizations.of(context)!.backgroundPause),
-            subtitle: Text(AppLocalizations.of(context)!.backgroundPauseHint),
+            subtitle: Text(l10n.backgroundPauseUpdatedHint),
           ),
           ListTile(
             title: Text(AppLocalizations.of(context)!.dailyResetTime),
@@ -391,7 +497,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 key: ValueKey('alert_sound_$sound'),
                 leading: Icon(
-                  value.selectedAlertSound == sound
+                  value.soundSource == 'builtin' &&
+                          value.selectedAlertSound == sound
                       ? Icons.radio_button_checked
                       : Icons.radio_button_unchecked,
                 ),
@@ -405,12 +512,53 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: IconButton(
                   tooltip: l10n.preview,
                   icon: const Icon(Icons.play_arrow_rounded),
-                  onPressed: () => _alerts.preview(sound),
+                  onPressed: () => _previewSound(builtin: sound),
                 ),
                 onTap: () {
-                  settings.update(value.copyWith(selectedAlertSound: sound));
-                  _saveSettings(context);
+                  final oldPath = value.customSoundPath;
+                  settings.update(
+                    value.copyWith(
+                      selectedAlertSound: sound,
+                      soundSource: 'builtin',
+                      clearCustomSound: true,
+                    ),
+                  );
+                  unawaited(
+                    _saveSettings(context).then((_) async {
+                      if (await settings.flush()) {
+                        await _syncRunningNotifications();
+                        await _media.deleteIfManaged(oldPath, 'custom_sounds');
+                      }
+                    }),
+                  );
                 },
+              ),
+            ListTile(
+              key: const ValueKey('choose_local_sound'),
+              leading: Icon(
+                value.soundSource == 'custom'
+                    ? Icons.radio_button_checked
+                    : Icons.audio_file_outlined,
+              ),
+              title: Text(l10n.chooseLocalSound),
+              subtitle: value.soundSource == 'custom'
+                  ? Text(value.customSoundName ?? l10n.customSound)
+                  : null,
+              onTap: _chooseCustomSound,
+              trailing:
+                  value.soundSource == 'custom' && value.customSoundPath != null
+                  ? IconButton(
+                      tooltip: l10n.preview,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      onPressed: () =>
+                          _previewSound(customPath: value.customSoundPath),
+                    )
+                  : null,
+            ),
+            if (value.soundSource == 'custom')
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(l10n.customSoundBackgroundFallback),
               ),
           ],
           if (value.timerAlertMode != 'none' &&

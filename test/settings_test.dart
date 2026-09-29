@@ -39,6 +39,29 @@ class _FakePreferences implements SharedPreferencesAsync {
 
 void main() {
   test(
+    'custom sound selection persists and old settings retain built-in default',
+    () async {
+      final storage = _MemorySettingsStorage();
+      final settings = await SettingsStore.load(storage: storage);
+      addTearDown(settings.dispose);
+      settings.update(
+        settings.settings.copyWith(
+          soundSource: 'custom',
+          customSoundPath: '/app/custom_sounds/example.mp3',
+          customSoundName: 'example.mp3',
+        ),
+      );
+      expect(await settings.flush(), isTrue);
+      final reopened = await SettingsStore.load(storage: storage);
+      addTearDown(reopened.dispose);
+      expect(reopened.settings.soundSource, 'custom');
+      expect(reopened.settings.customSoundName, 'example.mp3');
+      reopened.restoreDefaults();
+      expect(reopened.settings.soundSource, 'builtin');
+      expect(reopened.settings.customSoundPath, isNull);
+    },
+  );
+  test(
     'legacy settings migrate minutes to seconds and keep other choices',
     () async {
       final storage = _MemorySettingsStorage()
@@ -61,7 +84,7 @@ void main() {
       expect(settings.settings.completionAlertEnabled, isFalse);
       expect(settings.settings.homeHeadline, '每天进步一点点');
       expect(await settings.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 3);
+      expect(jsonDecode(storage.value!)['version'], 4);
       expect(jsonDecode(storage.value!)['showSeconds'], isNull);
     },
   );
@@ -90,7 +113,7 @@ void main() {
     expect(settings.settings.homeHeadline, '专注每一天');
     expect(settings.settings.defaultPlanSeconds, 5400);
     expect(await settings.flush(), isTrue);
-    expect(jsonDecode(storage.value!)['version'], 3);
+    expect(jsonDecode(storage.value!)['version'], 4);
   });
 
   test('SharedPreferences retains v2 snapshot as a migration backup', () async {
@@ -109,7 +132,7 @@ void main() {
     expect(await settings.flush(), isTrue);
     expect(preferences.values['app_settings_v2'], old);
     expect(
-      jsonDecode(preferences.values['app_settings_v3']!)['localeCode'],
+      jsonDecode(preferences.values['app_settings_v4']!)['localeCode'],
       'zh',
     );
   });

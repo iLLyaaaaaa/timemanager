@@ -11,12 +11,19 @@ import 'plan_management_page.dart';
 import 'settings_page.dart';
 import 'study_statistics_page.dart';
 import 'study_timer_page.dart';
+import '../services/screen_state_service.dart';
 
 class StudyHomePage extends StatefulWidget {
-  const StudyHomePage({super.key, required this.store, this.settings});
+  const StudyHomePage({
+    super.key,
+    required this.store,
+    this.settings,
+    this.screenState,
+  });
 
   final StudyPlanStore store;
   final SettingsStore? settings;
+  final ScreenStateService? screenState;
 
   @override
   State<StudyHomePage> createState() => _StudyHomePageState();
@@ -48,6 +55,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
           store: widget.store,
           planId: plan.id,
           settings: _settings,
+          screenState: widget.screenState,
         ),
       ),
     );

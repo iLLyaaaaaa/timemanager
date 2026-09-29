@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
+import '../widgets/study_plan_icon.dart';
 
 class StudyStatisticsPage extends StatelessWidget {
   const StudyStatisticsPage({super.key, required this.store});
@@ -137,7 +137,7 @@ class _PlanStatisticsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(studyIconFor(plan.iconId).icon, color: colors.primary),
+                StudyPlanIcon(plan: plan, color: colors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

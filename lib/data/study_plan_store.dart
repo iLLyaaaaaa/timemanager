@@ -23,6 +23,7 @@ class StudyPlanStore extends ChangeNotifier {
   Future<void>? _writeTask;
   Object? _lastWriteError;
   bool _hasLoadError = false;
+  bool _disposed = false;
 
   static Future<StudyPlanStore> load({
     required StudyPlanStorage storage,
@@ -43,7 +44,8 @@ class StudyPlanStore extends ChangeNotifier {
             (decoded['version'] != 1 &&
                 decoded['version'] != 2 &&
                 decoded['version'] != 3 &&
-                decoded['version'] != 4) ||
+                decoded['version'] != 4 &&
+                decoded['version'] != 5) ||
             decoded['plans'] is! List) {
           throw const FormatException('Invalid saved plans');
         }
@@ -66,7 +68,7 @@ class StudyPlanStore extends ChangeNotifier {
           ..clear()
           ..addAll(loaded);
         store._records.addAll(loadedRecords);
-        needsWrite = decoded['version'] != 4;
+        needsWrite = decoded['version'] != 5;
         final nextId = decoded['nextId'];
         if (nextId is int && nextId > 0) store._nextId = nextId;
         while (store._plans.any(
@@ -80,8 +82,9 @@ class StudyPlanStore extends ChangeNotifier {
         store._hasLoadError = true;
       }
     }
-    for (final plan in store._plans) {
-      if (store._syncRecord(plan)) needsWrite = true;
+    for (final plan in List<StudyPlan>.of(store._plans)) {
+      if (plan.isRunning) store.reconcileRunning(plan.id);
+      if (store._syncRecord(store.planById(plan.id) ?? plan)) needsWrite = true;
     }
     store.refreshForToday();
     if (needsWrite) store._scheduleWrite();
@@ -89,8 +92,10 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   List<StudyPlan> get plans => List.unmodifiable(_plans);
+  DateTime get currentTime => _now();
   List<StudyRecord> get records => List.unmodifiable(_records);
   bool get hasLoadError => _hasLoadError;
+  bool get isDisposed => _disposed;
 
   StudyPlan? planById(String id) {
     for (final plan in _plans) {
@@ -120,6 +125,7 @@ class StudyPlanStore extends ChangeNotifier {
           studiedSeconds: 0,
           hasStartedToday: false,
           isCompletedToday: false,
+          clearRunning: true,
         );
         changed = true;
       }
@@ -131,6 +137,7 @@ class StudyPlanStore extends ChangeNotifier {
     required String name,
     required String iconId,
     required int plannedSeconds,
+    String? customIconPath,
   }) {
     refreshForToday();
     _plans.add(
@@ -139,6 +146,7 @@ class StudyPlanStore extends ChangeNotifier {
         name: name,
         iconId: iconId,
         plannedSeconds: plannedSeconds,
+        customIconPath: customIconPath,
       ),
     );
     _changed();
@@ -148,6 +156,7 @@ class StudyPlanStore extends ChangeNotifier {
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == updated.id);
     if (index == -1) return;
+    if (_plans[index].isRunning) reconcileRunning(updated.id);
     final previous = _plans[index];
     final calculatedRemaining =
         updated.plannedSeconds == previous.plannedSeconds
@@ -156,13 +165,32 @@ class StudyPlanStore extends ChangeNotifier {
     final remaining = previous.hasStartedToday && calculatedRemaining > 0
         ? calculatedRemaining
         : 0;
-    _plans[index] = updated.withProgress(
-      day: previous.progressDay,
-      remainingSeconds: remaining,
-      studiedSeconds: previous.studiedSeconds,
-      hasStartedToday: previous.hasStartedToday,
-      isCompletedToday: previous.hasStartedToday && remaining == 0,
-    );
+    _plans[index] = previous
+        .copyWith(
+          name: updated.name,
+          iconId: updated.iconId,
+          plannedSeconds: updated.plannedSeconds,
+          pauseWhenBackgrounded: updated.pauseWhenBackgrounded,
+          customIconPath: updated.customIconPath,
+          clearCustomIcon: updated.customIconPath == null,
+        )
+        .withProgress(
+          day: previous.progressDay,
+          remainingSeconds: remaining,
+          studiedSeconds: previous.studiedSeconds,
+          hasStartedToday: previous.hasStartedToday,
+          isCompletedToday: previous.hasStartedToday && remaining == 0,
+          clearRunning: updated.plannedSeconds != previous.plannedSeconds,
+        );
+    if (previous.isRunning &&
+        remaining > 0 &&
+        updated.plannedSeconds != previous.plannedSeconds) {
+      final now = _now();
+      _plans[index] = _plans[index].withSession(
+        startedAt: now,
+        sessionId: '${updated.id}_${now.microsecondsSinceEpoch}',
+      );
+    }
     _syncRecord(_plans[index]);
     _changed();
   }
@@ -181,6 +209,7 @@ class StudyPlanStore extends ChangeNotifier {
       studiedSeconds: plan.studiedSeconds,
       hasStartedToday: true,
       isCompletedToday: false,
+      clearRunning: true,
     );
     _syncRecord(_plans[index]);
     _changed();
@@ -214,6 +243,7 @@ class StudyPlanStore extends ChangeNotifier {
         studiedSeconds: 0,
         hasStartedToday: false,
         isCompletedToday: false,
+        clearRunning: true,
       );
     }
     _records.clear();
@@ -241,6 +271,62 @@ class StudyPlanStore extends ChangeNotifier {
       isCompletedToday: false,
     );
     _syncRecord(_plans[index]);
+    _changed();
+  }
+
+  void beginRunning(String id, {DateTime? now}) {
+    startOrResume(id);
+    final index = _plans.indexWhere((plan) => plan.id == id);
+    if (index == -1 ||
+        _plans[index].isCompletedToday ||
+        _plans[index].isRunning) {
+      return;
+    }
+    now ??= _now();
+    _plans[index] = _plans[index].withSession(
+      startedAt: now,
+      sessionId: '${id}_${now.microsecondsSinceEpoch}',
+    );
+    _changed();
+  }
+
+  void reconcileRunning(String id, {DateTime? now}) {
+    final index = _plans.indexWhere((plan) => plan.id == id);
+    if (index == -1) return;
+    final plan = _plans[index];
+    if (!plan.isRunning) return;
+    final elapsed = (now ?? _now()).difference(plan.startedAt!).inSeconds;
+    final consumed = elapsed.clamp(0, plan.sessionStartRemainingSeconds!);
+    final remaining = plan.sessionStartRemainingSeconds! - consumed;
+    final studied = plan.sessionStartStudiedSeconds! + consumed;
+    if (remaining == plan.remainingSeconds && studied == plan.studiedSeconds) {
+      return;
+    }
+    _plans[index] = plan.withProgress(
+      day: plan.progressDay,
+      remainingSeconds: remaining,
+      studiedSeconds: studied,
+      hasStartedToday: true,
+      isCompletedToday: remaining == 0,
+      clearRunning: remaining == 0,
+    );
+    _syncRecord(_plans[index]);
+    _changed();
+  }
+
+  void pauseRunning(String id, {DateTime? now}) {
+    reconcileRunning(id, now: now);
+    final index = _plans.indexWhere((plan) => plan.id == id);
+    if (index == -1 || !_plans[index].isRunning) return;
+    final plan = _plans[index];
+    _plans[index] = plan.withProgress(
+      day: plan.progressDay,
+      remainingSeconds: plan.remainingSeconds,
+      studiedSeconds: plan.studiedSeconds,
+      hasStartedToday: plan.hasStartedToday,
+      isCompletedToday: plan.isCompletedToday,
+      clearRunning: true,
+    );
     _changed();
   }
 
@@ -300,7 +386,7 @@ class StudyPlanStore extends ChangeNotifier {
     final target = storage;
     if (target == null || _hasLoadError) return;
     _pendingSnapshot = jsonEncode({
-      'version': 4,
+      'version': 5,
       'nextId': _nextId,
       'plans': _plans.map((plan) => plan.toJson()).toList(),
       'records': _records.map((record) => record.toJson()).toList(),
@@ -331,6 +417,7 @@ class StudyPlanStore extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     settings?.removeListener(refreshForToday);
     super.dispose();
   }

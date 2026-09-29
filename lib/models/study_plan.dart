@@ -10,6 +10,12 @@ class StudyPlan {
     this.studiedSeconds = 0,
     this.hasStartedToday = false,
     this.isCompletedToday = false,
+    this.customIconPath,
+    this.sessionId,
+    this.startedAt,
+    this.targetEndTime,
+    this.sessionStartRemainingSeconds,
+    this.sessionStartStudiedSeconds,
   });
 
   final String id;
@@ -22,12 +28,21 @@ class StudyPlan {
   final int studiedSeconds;
   final bool hasStartedToday;
   final bool isCompletedToday;
+  final String? customIconPath;
+  final String? sessionId;
+  final DateTime? startedAt;
+  final DateTime? targetEndTime;
+  final int? sessionStartRemainingSeconds;
+  final int? sessionStartStudiedSeconds;
+  bool get isRunning => startedAt != null && targetEndTime != null;
 
   StudyPlan copyWith({
     String? name,
     String? iconId,
     int? plannedSeconds,
     bool? pauseWhenBackgrounded,
+    String? customIconPath,
+    bool clearCustomIcon = false,
   }) {
     return StudyPlan(
       id: id,
@@ -41,6 +56,14 @@ class StudyPlan {
       studiedSeconds: studiedSeconds,
       hasStartedToday: hasStartedToday,
       isCompletedToday: isCompletedToday,
+      customIconPath: clearCustomIcon
+          ? null
+          : customIconPath ?? this.customIconPath,
+      sessionId: sessionId,
+      startedAt: startedAt,
+      targetEndTime: targetEndTime,
+      sessionStartRemainingSeconds: sessionStartRemainingSeconds,
+      sessionStartStudiedSeconds: sessionStartStudiedSeconds,
     );
   }
 
@@ -50,6 +73,7 @@ class StudyPlan {
     required int studiedSeconds,
     required bool hasStartedToday,
     required bool isCompletedToday,
+    bool clearRunning = false,
   }) {
     return StudyPlan(
       id: id,
@@ -62,6 +86,40 @@ class StudyPlan {
       studiedSeconds: studiedSeconds,
       hasStartedToday: hasStartedToday,
       isCompletedToday: isCompletedToday,
+      customIconPath: customIconPath,
+      sessionId: clearRunning ? null : sessionId,
+      startedAt: clearRunning ? null : startedAt,
+      targetEndTime: clearRunning ? null : targetEndTime,
+      sessionStartRemainingSeconds: clearRunning
+          ? null
+          : sessionStartRemainingSeconds,
+      sessionStartStudiedSeconds: clearRunning
+          ? null
+          : sessionStartStudiedSeconds,
+    );
+  }
+
+  StudyPlan withSession({
+    required DateTime startedAt,
+    required String sessionId,
+  }) {
+    return StudyPlan(
+      id: id,
+      name: name,
+      iconId: iconId,
+      plannedSeconds: plannedSeconds,
+      pauseWhenBackgrounded: pauseWhenBackgrounded,
+      progressDay: progressDay,
+      remainingSeconds: remainingSeconds,
+      studiedSeconds: studiedSeconds,
+      hasStartedToday: hasStartedToday,
+      isCompletedToday: isCompletedToday,
+      customIconPath: customIconPath,
+      sessionId: sessionId,
+      startedAt: startedAt,
+      targetEndTime: startedAt.add(Duration(seconds: remainingSeconds)),
+      sessionStartRemainingSeconds: remainingSeconds,
+      sessionStartStudiedSeconds: studiedSeconds,
     );
   }
 
@@ -76,6 +134,12 @@ class StudyPlan {
     'studiedSeconds': studiedSeconds,
     'hasStartedToday': hasStartedToday,
     'isCompletedToday': isCompletedToday,
+    'customIconPath': customIconPath,
+    'sessionId': sessionId,
+    'startedAt': startedAt?.millisecondsSinceEpoch,
+    'targetEndTime': targetEndTime?.millisecondsSinceEpoch,
+    'sessionStartRemainingSeconds': sessionStartRemainingSeconds,
+    'sessionStartStudiedSeconds': sessionStartStudiedSeconds,
   };
 
   factory StudyPlan.fromJson(Map<String, dynamic> json) {
@@ -87,6 +151,18 @@ class StudyPlan {
     final storedRemainingSeconds = json['remainingSeconds'];
     final storedStudiedSeconds = json['studiedSeconds'];
     final storedPauseWhenBackgrounded = json['pauseWhenBackgrounded'];
+    final startedAtMs = json['startedAt'];
+    final targetEndMs = json['targetEndTime'];
+    final startRemaining = json['sessionStartRemainingSeconds'];
+    final startStudied = json['sessionStartStudiedSeconds'];
+    final validSession =
+        startedAtMs is int &&
+        targetEndMs is int &&
+        startRemaining is int &&
+        startRemaining > 0 &&
+        startStudied is int &&
+        startStudied >= 0 &&
+        json['sessionId'] is String;
     if (id is! String ||
         name is! String ||
         iconId is! String ||
@@ -120,6 +196,18 @@ class StudyPlan {
           : 0,
       hasStartedToday: json['hasStartedToday'] == true,
       isCompletedToday: json['isCompletedToday'] == true,
+      customIconPath: json['customIconPath'] is String
+          ? json['customIconPath'] as String
+          : null,
+      sessionId: validSession ? json['sessionId'] as String : null,
+      startedAt: validSession
+          ? DateTime.fromMillisecondsSinceEpoch(startedAtMs)
+          : null,
+      targetEndTime: validSession
+          ? DateTime.fromMillisecondsSinceEpoch(targetEndMs)
+          : null,
+      sessionStartRemainingSeconds: validSession ? startRemaining : null,
+      sessionStartStudiedSeconds: validSession ? startStudied : null,
     );
   }
 }

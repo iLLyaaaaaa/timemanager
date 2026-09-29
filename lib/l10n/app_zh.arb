@@ -331,5 +331,21 @@
       }
     }
   },
-  "defaultHomeHeadline": "每天进步一点点"
+  "defaultHomeHeadline": "每天进步一点点",
+  "chooseLocalImage": "从本地选择图片",
+  "invalidLocalImage": "请选择小于 8 MB 的有效 PNG、JPEG 或 WebP 图片。",
+  "chooseLocalSound": "从本地选择铃声",
+  "invalidLocalSound": "无法使用该音频文件，请选择受支持的音频格式。",
+  "ncmUnsupported": "该文件为网易云音乐 NCM 格式，无法直接作为铃声使用。请选择 MP3、WAV、M4A 或 OGG 等标准音频文件。",
+  "cropImage": "裁剪图片",
+  "trimSound": "裁剪铃声",
+  "audioDuration": "音频总时长",
+  "audioStart": "开始位置",
+  "audioEnd": "结束位置",
+  "clipLength": "片段长度",
+  "saveClip": "保存片段",
+  "customSound": "自定义铃声",
+  "previewFailed": "无法播放这个铃声。",
+  "customSoundBackgroundFallback": "后台和锁屏时会尝试使用自定义铃声；若无法取得通知用的声音地址，则改用当前选定的内置铃声。",
+  "backgroundPauseUpdatedHint": "切换到其他应用时暂停；锁屏仍继续计时。"
 }

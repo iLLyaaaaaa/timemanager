@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
@@ -12,6 +11,8 @@ import '../models/app_settings.dart';
 import '../utils/study_duration.dart';
 import '../widgets/study_duration_input.dart';
 import '../services/timer_alert_service.dart';
+import '../widgets/study_plan_icon.dart';
+import '../services/screen_state_service.dart';
 
 class StudyTimerPage extends StatefulWidget {
   const StudyTimerPage({
@@ -21,6 +22,7 @@ class StudyTimerPage extends StatefulWidget {
     this.settings,
     this.now,
     this.alerts,
+    this.screenState,
   });
 
   final StudyPlanStore store;
@@ -28,6 +30,7 @@ class StudyTimerPage extends StatefulWidget {
   final SettingsStore? settings;
   final DateTime Function()? now;
   final TimerAlertService? alerts;
+  final ScreenStateService? screenState;
 
   @override
   State<StudyTimerPage> createState() => _StudyTimerPageState();
@@ -38,29 +41,46 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   Timer? _timer;
   bool _isLeaving = false;
   bool _isRunning = false;
-  DateTime? _backgroundedAt;
+  bool _away = false;
+  bool _scheduledAlert = false;
+  String? _activeSessionId;
+  Future<bool>? _scheduleTask;
+  int _scheduleGeneration = 0;
   late final TimerAlertService _alerts = widget.alerts ?? TimerAlertService();
+  late final ScreenStateService _screenState =
+      widget.screenState ?? ScreenStateService();
   bool _completionHandled = false;
-
-  DateTime _now() => widget.now?.call() ?? DateTime.now();
+  DateTime _now() => widget.now?.call() ?? widget.store.currentTime;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final plan = widget.store.planById(widget.planId);
+    _isRunning = plan?.isRunning ?? false;
+    _activeSessionId = plan?.sessionId;
+    if (_isRunning) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scheduleCompletion();
+          _startTimer();
+        }
+      });
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (_backgroundedAt != null && _isRunning) {
-        unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
-        _applyBackgroundElapsed();
+      _away = false;
+      if (_isRunning) {
+        widget.store.reconcileRunning(widget.planId, now: _now());
         final plan = widget.store.planById(widget.planId);
-        if (plan != null && plan.hasStartedToday && plan.remainingSeconds > 0) {
+        if (plan?.isRunning == true) {
+          _scheduleCompletion();
           _startTimer();
         } else {
-          _finishSession(plan, fromBackground: true);
+          unawaited(_finishSession(plan, fromBackground: true));
         }
         if (mounted) setState(() {});
         unawaited(widget.store.flush());
@@ -68,53 +88,66 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       return;
     }
     if (!_isRunning) return;
-    if (state == AppLifecycleState.detached) {
-      _applyBackgroundElapsed();
-      _stopSession();
-      unawaited(widget.store.flush());
-    } else if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      final plan = widget.store.planById(widget.planId);
-      if (plan?.pauseWhenBackgrounded ?? true) {
-        unawaited(_pause());
-      } else if (_backgroundedAt == null) {
-        _backgroundedAt = _now();
-        _stopTimer();
-        if (plan != null && mounted) {
-          unawaited(
-            _alerts.scheduleBackgroundCompletion(
-              plan: plan,
-              settings: widget.settings?.settings ?? const AppSettings(),
-              l10n: AppLocalizations.of(context)!,
-            ),
-          );
-        }
-        unawaited(widget.store.flush());
-      }
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_handleAway());
     }
   }
 
-  void _applyBackgroundElapsed() {
-    final started = _backgroundedAt;
-    _backgroundedAt = null;
-    if (started == null) return;
-    final seconds = _now().difference(started).inSeconds;
-    if (seconds > 0) widget.store.studySeconds(widget.planId, seconds);
+  Future<void> _handleAway() async {
+    if (_away || !_isRunning) return;
+    _away = true;
+    _stopTimer();
+    final locked = await _screenState.isScreenLocked();
+    if (!mounted || !_isRunning || !_away) return;
+    final plan = widget.store.planById(widget.planId);
+    if (!locked && (plan?.pauseWhenBackgrounded ?? true)) {
+      await _pause();
+    } else {
+      widget.store.reconcileRunning(widget.planId, now: _now());
+      await widget.store.flush();
+    }
   }
 
   void _start() {
     if (_isRunning) return;
     final plan = widget.store.planById(widget.planId);
     if (plan == null || plan.isCompletedToday) return;
-    widget.store.startOrResume(widget.planId);
+    widget.store.beginRunning(widget.planId, now: _now());
+    _activeSessionId = widget.store.planById(widget.planId)?.sessionId;
     _completionHandled = false;
     _isRunning = true;
-    if (!plan.pauseWhenBackgrounded) {
+    _scheduledAlert = false;
+    _scheduleCompletion();
+    unawaited(widget.store.flush());
+    if ((widget.settings?.settings.timerAlertMode ?? 'sound') != 'none') {
       unawaited(_offerBackgroundPermission());
     }
     _startTimer();
     setState(() {});
+  }
+
+  void _scheduleCompletion() {
+    if (_scheduleTask != null || _scheduledAlert) return;
+    final plan = widget.store.planById(widget.planId);
+    if (plan == null || !mounted || plan.sessionId == null) return;
+    final sessionId = plan.sessionId!;
+    final generation = ++_scheduleGeneration;
+    final task = _alerts.scheduleBackgroundCompletion(
+      plan: plan,
+      settings: widget.settings?.settings ?? const AppSettings(),
+      l10n: AppLocalizations.of(context)!,
+    );
+    _scheduleTask = task;
+    unawaited(
+      task.then((scheduled) {
+        if (_activeSessionId == sessionId &&
+            _scheduleGeneration == generation) {
+          _scheduledAlert = scheduled;
+          _scheduleTask = null;
+        }
+      }),
+    );
   }
 
   Future<void> _offerBackgroundPermission() async {
@@ -139,35 +172,50 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     if (await _alerts.requestNotificationPermission()) {
       await _alerts.requestExactAlarmPermission();
     }
+    final pending = _scheduleTask;
+    if (pending != null) await pending;
+    if (!mounted || !_isRunning || _activeSessionId == null) return;
+    await _alerts.cancelBackgroundCompletion(_activeSessionId!);
+    _scheduleGeneration++;
+    _scheduledAlert = false;
+    _scheduleTask = null;
+    _scheduleCompletion();
   }
 
   void _startTimer() {
-    if (_timer != null || !_isRunning || _backgroundedAt != null) return;
+    if (_timer != null || !_isRunning || _away) return;
     final plan = widget.store.planById(widget.planId);
     if (plan == null || !plan.hasStartedToday || plan.remainingSeconds == 0) {
       return;
     }
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      widget.store.studyOneSecond(widget.planId);
+      widget.store.reconcileRunning(widget.planId, now: _now());
       final current = widget.store.planById(widget.planId);
       if (current == null ||
           !current.hasStartedToday ||
           current.remainingSeconds == 0) {
-        _finishSession(current);
+        unawaited(_finishSession(current));
       }
     });
   }
 
-  void _finishSession(StudyPlan? plan, {bool fromBackground = false}) {
+  Future<void> _finishSession(
+    StudyPlan? plan, {
+    bool fromBackground = false,
+  }) async {
     if (_completionHandled || !_isRunning) return;
     _completionHandled = true;
     _stopSession();
     if (mounted) setState(() {});
     final settings = widget.settings?.settings ?? const AppSettings();
+    final scheduled = await (_scheduleTask ?? Future.value(_scheduledAlert));
+    _activeSessionId = null;
+    _scheduleTask = null;
     if (plan?.isCompletedToday == true &&
         mounted &&
         settings.timerAlertMode != 'none' &&
-        !fromBackground) {
+        !fromBackground &&
+        !scheduled) {
       unawaited(_alerts.complete(settings));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.completeSnack)),
@@ -182,15 +230,22 @@ class _StudyTimerPageState extends State<StudyTimerPage>
 
   void _stopSession() {
     _stopTimer();
-    _backgroundedAt = null;
     _isRunning = false;
   }
 
   Future<void> _pause() async {
-    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
-    _applyBackgroundElapsed();
+    final sessionId =
+        _activeSessionId ?? widget.store.planById(widget.planId)?.sessionId;
+    widget.store.pauseRunning(widget.planId, now: _now());
+    _scheduleGeneration++;
+    _activeSessionId = null;
+    _scheduleTask = null;
+    _scheduledAlert = false;
     _stopSession();
-    setState(() {});
+    if (mounted) setState(() {});
+    if (sessionId != null) {
+      await _alerts.cancelBackgroundCompletion(sessionId);
+    }
     final saved = await widget.store.flush();
     if (!saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -264,9 +319,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   Future<void> _leavePage() async {
     if (_isLeaving) return;
     _isLeaving = true;
-    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
-    _applyBackgroundElapsed();
-    _stopSession();
+    if (_isRunning) await _pause();
     final saved = await widget.store.flush();
     if (!mounted) return;
     if (!saved) {
@@ -283,9 +336,10 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _applyBackgroundElapsed();
+    // Explicit navigation pauses in _leavePage. Android can destroy this
+    // page while an allowed background session is running; its OS alarm and
+    // persisted target end time must survive that widget disposal.
     _stopSession();
-    unawaited(_alerts.cancelBackgroundCompletion(widget.planId));
     if (widget.alerts == null) unawaited(_alerts.dispose());
     widget.store.flush();
     super.dispose();
@@ -338,8 +392,8 @@ class _StudyTimerPageState extends State<StudyTimerPage>
           children: [
             Row(
               children: [
-                Icon(
-                  studyIconFor(plan.iconId).icon,
+                StudyPlanIcon(
+                  plan: plan,
                   key: const ValueKey('timer_plan_icon'),
                   size: 32,
                   color: accent,

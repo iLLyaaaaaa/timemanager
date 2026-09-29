@@ -9,10 +9,13 @@ import 'package:hello_app/models/study_plan.dart';
 import 'package:hello_app/pages/settings_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/services/timer_alert_service.dart';
+import 'package:hello_app/services/screen_state_service.dart';
 
 import 'support/localized_app.dart';
 
 class _FakeAlerts extends TimerAlertService {
+  _FakeAlerts({this.scheduled = true});
+  final bool scheduled;
   final List<int> previews = [];
   final List<String> completedModes = [];
   final List<String> scheduledPlans = [];
@@ -31,15 +34,18 @@ class _FakeAlerts extends TimerAlertService {
   );
 
   @override
-  Future<void> scheduleBackgroundCompletion({
+  Future<bool> scheduleBackgroundCompletion({
     required StudyPlan plan,
     required AppSettings settings,
     required AppLocalizations l10n,
-  }) async => scheduledPlans.add(plan.id);
+  }) async {
+    scheduledPlans.add(plan.id);
+    return scheduled;
+  }
 
   @override
-  Future<void> cancelBackgroundCompletion(String planId) async =>
-      cancelledPlans.add(planId);
+  Future<void> cancelBackgroundCompletion(String sessionId) async =>
+      cancelledPlans.add(sessionId);
 
   @override
   Future<bool> notificationsEnabled() async => true;
@@ -65,7 +71,109 @@ class _DeniedAlerts extends _FakeAlerts {
   Future<bool> exactAlarmsEnabled() async => false;
 }
 
+class _ScreenState extends ScreenStateService {
+  _ScreenState(this.locked);
+  final bool locked;
+  @override
+  Future<bool> isScreenLocked() async => locked;
+}
+
 void main() {
+  testWidgets('locking continues a pause-enabled plan by wall clock', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 9, 29, 12);
+    final store = StudyPlanStore(now: () => now);
+    store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 120);
+    final alerts = _FakeAlerts();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(
+      localizedApp(
+        home: StudyTimerPage(
+          store: store,
+          planId: store.plans.single.id,
+          alerts: alerts,
+          screenState: _ScreenState(true),
+          now: () => now,
+        ),
+      ),
+    );
+    await tester.tap(find.text('开始'));
+    await tester.pump();
+    expect(alerts.scheduledPlans, [store.plans.single.id]);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+    expect(store.plans.single.isRunning, isTrue);
+    now = now.add(const Duration(seconds: 60));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(store.plans.single.remainingSeconds, 60);
+    expect(store.plans.single.studiedSeconds, 60);
+    expect(alerts.cancelledPlans, isEmpty);
+    now = now.add(const Duration(seconds: 60));
+    await tester.pump(const Duration(seconds: 1));
+    expect(store.plans.single.isCompletedToday, isTrue);
+    expect(store.plans.single.remainingSeconds, 0);
+    expect(alerts.completedModes, isEmpty);
+  });
+
+  testWidgets('Home pauses a pause-enabled plan without counting time away', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 9, 29, 12);
+    final store = StudyPlanStore(now: () => now);
+    store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 120);
+    final alerts = _FakeAlerts();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(
+      localizedApp(
+        home: StudyTimerPage(
+          store: store,
+          planId: store.plans.single.id,
+          alerts: alerts,
+          screenState: _ScreenState(false),
+          now: () => now,
+        ),
+      ),
+    );
+    await tester.tap(find.text('开始'));
+    await tester.pump();
+    final sessionId = store.plans.single.sessionId!;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+    expect(store.plans.single.isRunning, isFalse);
+    now = now.add(const Duration(seconds: 60));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(store.plans.single.remainingSeconds, 120);
+    expect(store.plans.single.studiedSeconds, 0);
+    expect(find.text('开始'), findsOneWidget);
+    expect(alerts.cancelledPlans, contains(sessionId));
+  });
+
+  testWidgets('disposing a running page keeps its OS alert scheduled', (
+    tester,
+  ) async {
+    final store = StudyPlanStore();
+    store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 60);
+    final alerts = _FakeAlerts();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(
+      localizedApp(
+        home: StudyTimerPage(
+          store: store,
+          planId: store.plans.single.id,
+          alerts: alerts,
+        ),
+      ),
+    );
+    await tester.tap(find.text('开始'));
+    await tester.pump();
+    expect(alerts.scheduledPlans, [store.plans.single.id]);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(store.plans.single.isRunning, isTrue);
+    expect(alerts.cancelledPlans, isEmpty);
+  });
   test('all five bundled tones are distinct valid wave files', () async {
     final signatures = <int>[];
     for (var sound = 1; sound <= 5; sound++) {
@@ -166,7 +274,7 @@ void main() {
     }
     final selected = find.byKey(const ValueKey('alert_sound_3'));
     await tester.scrollUntilVisible(selected, 200);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -180));
+    await tester.ensureVisible(selected);
     await tester.pumpAndSettle();
     await tester.tap(selected);
     await tester.pump();
@@ -181,9 +289,12 @@ void main() {
       settings.update(
         settings.settings.copyWith(timerAlertMode: mode, selectedAlertSound: 3),
       );
-      final store = StudyPlanStore(settings: settings);
+      final store = StudyPlanStore(
+        settings: settings,
+        now: () => tester.binding.clock.now(),
+      );
       store.addPlan(name: '高等数学', iconId: 'calculate', plannedSeconds: 1);
-      final alerts = _FakeAlerts();
+      final alerts = _FakeAlerts(scheduled: false);
       addTearDown(store.dispose);
       addTearDown(settings.dispose);
       await tester.pumpWidget(
@@ -209,7 +320,10 @@ void main() {
     'background continuation schedules an OS alert, then cancels on resume',
     (tester) async {
       final settings = SettingsStore();
-      final store = StudyPlanStore(settings: settings);
+      final store = StudyPlanStore(
+        settings: settings,
+        now: () => tester.binding.clock.now(),
+      );
       store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 4);
       final plan = store.plans.single;
       store.updatePlan(plan.copyWith(pauseWhenBackgrounded: false));
@@ -230,14 +344,14 @@ void main() {
       );
       await tester.tap(find.text('开始'));
       await tester.pump();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
       expect(alerts.scheduledPlans, [plan.id]);
       clock = clock.add(const Duration(seconds: 5));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
       expect(store.plans.single.isCompletedToday, isTrue);
-      expect(alerts.cancelledPlans, contains(plan.id));
+      expect(alerts.cancelledPlans, isEmpty);
       expect(alerts.completedModes, isEmpty);
     },
   );

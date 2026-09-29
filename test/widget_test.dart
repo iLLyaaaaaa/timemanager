@@ -10,7 +10,7 @@ import 'package:hello_app/widgets/study_plan_card.dart';
 
 void main() {
   testWidgets('fresh install is empty and navigation works', (tester) async {
-    final store = StudyPlanStore();
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
     await tester.pumpWidget(MyApp(store: store));
     expect(store.plans, isEmpty);
     expect(find.textContaining('还没有学习计划'), findsOneWidget);
@@ -26,7 +26,7 @@ void main() {
   testWidgets('90 second plan can be added, edited, timed and deleted', (
     tester,
   ) async {
-    final store = StudyPlanStore();
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
     addTearDown(store.dispose);
     await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('管理计划'));
@@ -97,7 +97,7 @@ void main() {
   });
 
   testWidgets('timer pauses, resumes and completes', (tester) async {
-    final store = StudyPlanStore();
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
     addTearDown(store.dispose);
     store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 3);
     final id = store.plans.single.id;
@@ -125,7 +125,7 @@ void main() {
   testWidgets('study buttons are aligned, prominent and reflect progress', (
     tester,
   ) async {
-    final store = StudyPlanStore();
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
     addTearDown(store.dispose);
     store.addPlan(name: '日语', iconId: 'language', plannedSeconds: 90);
     store.addPlan(name: '数学', iconId: 'calculate', plannedSeconds: 120);
@@ -178,7 +178,7 @@ void main() {
   testWidgets('batch delete removes only selected plans after confirmation', (
     tester,
   ) async {
-    final store = StudyPlanStore();
+    final store = StudyPlanStore(now: () => tester.binding.clock.now());
     addTearDown(store.dispose);
     for (final name in ['日语', '英语', '数学']) {
       store.addPlan(name: name, iconId: 'book', plannedSeconds: 90);

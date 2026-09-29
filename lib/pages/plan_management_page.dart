@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import '../l10n/app_localizations.dart';
 
-import '../data/study_icon_catalog.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
 import 'plan_edit_page.dart';
+import '../widgets/study_plan_icon.dart';
+import '../services/local_media_store.dart';
+import '../services/timer_alert_service.dart';
 
 class PlanManagementPage extends StatefulWidget {
   const PlanManagementPage({super.key, required this.store, this.settings});
@@ -23,9 +27,31 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
   late final SettingsStore _settings = widget.settings ?? SettingsStore();
   bool _bulkMode = false;
   final Set<String> _selectedIds = {};
+  final _media = LocalMediaStore();
+  final _alerts = TimerAlertService();
+
+  Future<void> _removeUnusedIcons(Iterable<String?> paths) async {
+    for (final path in paths.toSet()) {
+      if (path != null &&
+          !widget.store.plans.any((plan) => plan.customIconPath == path)) {
+        await _media.deleteIfManaged(path, 'custom_icons');
+      }
+    }
+  }
+
+  Future<void> _restoreDeletedPlan(StudyPlan plan, int index) async {
+    widget.store.restorePlan(plan, index: index);
+    if (!mounted || !plan.isRunning || plan.sessionId == null) return;
+    await _alerts.scheduleBackgroundCompletion(
+      plan: plan,
+      settings: _settings.settings,
+      l10n: AppLocalizations.of(context)!,
+    );
+  }
 
   @override
   void dispose() {
+    unawaited(_alerts.dispose());
     if (widget.settings == null) _settings.dispose();
     super.dispose();
   }
@@ -91,12 +117,25 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    final removedPlans = widget.store.plans
+        .where((plan) => ids.contains(plan.id))
+        .toList();
+    final removedIcons = removedPlans
+        .map((plan) => plan.customIconPath)
+        .toList();
     widget.store.deletePlans(ids);
+    for (final plan in removedPlans) {
+      if (plan.sessionId != null) {
+        await _alerts.cancelBackgroundCompletion(plan.sessionId!);
+      }
+    }
     setState(() {
       _bulkMode = false;
       _selectedIds.clear();
     });
-    if (!await widget.store.flush() && mounted) {
+    final saved = await widget.store.flush();
+    if (saved) await _removeUnusedIcons(removedIcons);
+    if (!saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.deleteSaveFailed)),
       );
@@ -140,16 +179,28 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     }
     final index = widget.store.plans.indexWhere((item) => item.id == plan.id);
     widget.store.deletePlan(plan.id);
+    if (plan.sessionId != null) {
+      await _alerts.cancelBackgroundCompletion(plan.sessionId!);
+    }
     if (!confirmFirst && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final controller = ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.deletedPlan(plan.name)),
           action: SnackBarAction(
             label: AppLocalizations.of(context)!.undo,
-            onPressed: () => widget.store.restorePlan(plan, index: index),
+            onPressed: () => unawaited(_restoreDeletedPlan(plan, index)),
           ),
         ),
       );
+      unawaited(
+        controller.closed.then((_) async {
+          if (await widget.store.flush()) {
+            await _removeUnusedIcons([plan.customIconPath]);
+          }
+        }),
+      );
+    } else if (await widget.store.flush()) {
+      await _removeUnusedIcons([plan.customIconPath]);
     }
   }
 
@@ -210,10 +261,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                               onChanged: (_) => _toggleSelection(plan.id),
                             )
                           else
-                            Icon(
-                              studyIconFor(plan.iconId).icon,
-                              color: colors.primary,
-                            ),
+                            StudyPlanIcon(plan: plan, color: colors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(

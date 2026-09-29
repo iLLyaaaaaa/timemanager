@@ -1105,6 +1105,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A little progress every day'**
   String get defaultHomeHeadline;
+
+  /// No description provided for @chooseLocalImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose image from device'**
+  String get chooseLocalImage;
+
+  /// No description provided for @invalidLocalImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid PNG, JPEG, or WebP image under 8 MB.'**
+  String get invalidLocalImage;
+
+  /// No description provided for @chooseLocalSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from device'**
+  String get chooseLocalSound;
+
+  /// No description provided for @invalidLocalSound.
+  ///
+  /// In en, this message translates to:
+  /// **'This audio file cannot be used. Please choose a supported audio format.'**
+  String get invalidLocalSound;
+
+  /// No description provided for @ncmUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This NCM file cannot be used directly as an alert sound. Please choose a standard audio file such as MP3, WAV, M4A, or OGG.'**
+  String get ncmUnsupported;
+
+  /// No description provided for @cropImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop image'**
+  String get cropImage;
+
+  /// No description provided for @trimSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim alert sound'**
+  String get trimSound;
+
+  /// No description provided for @audioDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Total duration'**
+  String get audioDuration;
+
+  /// No description provided for @audioStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get audioStart;
+
+  /// No description provided for @audioEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get audioEnd;
+
+  /// No description provided for @clipLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection length'**
+  String get clipLength;
+
+  /// No description provided for @saveClip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save clip'**
+  String get saveClip;
+
+  /// No description provided for @customSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sound'**
+  String get customSound;
+
+  /// No description provided for @previewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This sound could not be played.'**
+  String get previewFailed;
+
+  /// No description provided for @customSoundBackgroundFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Background and lock-screen alerts try the custom sound; if a notification sound URI is unavailable, the selected built-in sound is used.'**
+  String get customSoundBackgroundFallback;
+
+  /// No description provided for @backgroundPauseUpdatedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause when switching apps. Locking the screen keeps the timer running.'**
+  String get backgroundPauseUpdatedHint;
 }
 
 class _AppLocalizationsDelegate

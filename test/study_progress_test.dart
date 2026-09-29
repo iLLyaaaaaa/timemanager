@@ -12,6 +12,12 @@ import 'package:hello_app/pages/plan_management_page.dart';
 import 'package:hello_app/pages/study_statistics_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/utils/study_duration.dart';
+import 'package:hello_app/services/screen_state_service.dart';
+
+class _UnlockedScreen extends ScreenStateService {
+  @override
+  Future<bool> isScreenLocked() async => false;
+}
 
 class _MemoryStorage implements StudyPlanStorage {
   String? value;
@@ -42,6 +48,65 @@ class _FakePreferences implements SharedPreferencesAsync {
 
 void main() {
   final today = DateTime(2026, 9, 28);
+
+  test(
+    'running session survives process reload and uses target end time',
+    () async {
+      final storage = _MemoryStorage();
+      var now = DateTime(2026, 9, 28, 12);
+      final store = await StudyPlanStore.load(storage: storage, now: () => now);
+      addTearDown(store.dispose);
+      store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 120);
+      final id = store.plans.single.id;
+      store.beginRunning(id);
+      final end = store.plans.single.targetEndTime;
+      expect(end, now.add(const Duration(seconds: 120)));
+      expect(await store.flush(), isTrue);
+      now = now.add(const Duration(seconds: 67));
+      final reopened = await StudyPlanStore.load(
+        storage: storage,
+        now: () => now,
+      );
+      addTearDown(reopened.dispose);
+      expect(reopened.planById(id)!.remainingSeconds, 53);
+      expect(reopened.planById(id)!.studiedSeconds, 67);
+      expect(reopened.planById(id)!.isRunning, isTrue);
+      reopened.pauseRunning(id);
+      now = now.add(const Duration(minutes: 2));
+      reopened.reconcileRunning(id);
+      expect(reopened.planById(id)!.remainingSeconds, 53);
+      expect(reopened.planById(id)!.studiedSeconds, 67);
+    },
+  );
+
+  test(
+    'custom icon path survives reload while legacy icons remain built in',
+    () async {
+      final storage = _MemoryStorage();
+      final store = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(store.dispose);
+      store.addPlan(
+        name: '自定义',
+        iconId: 'category',
+        plannedSeconds: 90,
+        customIconPath: '/app/custom_icons/icon.png',
+      );
+      expect(await store.flush(), isTrue);
+      final reopened = await StudyPlanStore.load(
+        storage: storage,
+        now: () => today,
+      );
+      addTearDown(reopened.dispose);
+      expect(
+        reopened.plans.single.customIconPath,
+        '/app/custom_icons/icon.png',
+      );
+      expect(reopened.plans.single.iconId, 'category');
+    },
+  );
 
   test('duration formatter uses seconds everywhere', () {
     expect(formatStudyDuration(0), '00:00');
@@ -96,8 +161,8 @@ void main() {
       expect(store.plans.single.name, '阅读');
       expect(await store.flush(), isTrue);
       expect(await preferences.getString('study_plans_v3'), previous);
-      final migrated = await preferences.getString('study_plans_v4');
-      expect(jsonDecode(migrated!)['version'], 4);
+      final migrated = await preferences.getString('study_plans_v5');
+      expect(jsonDecode(migrated!)['version'], 5);
       expect(jsonDecode(migrated)['plans'][0]['pauseWhenBackgrounded'], isTrue);
     },
   );
@@ -144,7 +209,7 @@ void main() {
       expect(store.records.length, 2);
       expect(store.records.first.date, '2026-09-27');
       expect(await store.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 4);
+      expect(jsonDecode(storage.value!)['version'], 5);
       expect(legacy, contains('plannedMinutes'));
       store.deletePlan('custom_1');
       expect(store.records.length, 2);
@@ -209,7 +274,7 @@ void main() {
       expect(store.plans.single.studiedSeconds, 53);
       expect(store.records.single.studiedSeconds, 53);
       expect(await store.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 4);
+      expect(jsonDecode(storage.value!)['version'], 5);
       expect(
         jsonDecode(storage.value!)['plans'][0]['pauseWhenBackgrounded'],
         isTrue,
@@ -233,10 +298,11 @@ void main() {
     );
     await tester.tap(find.text('开始'));
     await tester.pump();
+    clock = clock.add(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
     expect(store.plans.single.studiedSeconds, 2);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
     clock = clock.add(const Duration(seconds: 20));
     await tester.pump(const Duration(seconds: 30));
     expect(store.plans.single.studiedSeconds, 2);
@@ -245,6 +311,7 @@ void main() {
     expect(store.plans.single.studiedSeconds, 22);
     expect(store.plans.single.remainingSeconds, 68);
     expect(find.text('暂停'), findsOneWidget);
+    clock = clock.add(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
     expect(store.plans.single.studiedSeconds, 23);
     await tester.tap(find.text('暂停'));
@@ -314,11 +381,18 @@ void main() {
     tester,
   ) async {
     final storage = _MemoryStorage();
-    final store = await StudyPlanStore.load(storage: storage, now: () => today);
+    final store = await StudyPlanStore.load(
+      storage: storage,
+      now: () => tester.binding.clock.now(),
+    );
     addTearDown(store.dispose);
     store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 90);
     final id = store.plans.single.id;
-    await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
+    await tester.pumpWidget(
+      localizedApp(
+        home: StudyHomePage(store: store, screenState: _UnlockedScreen()),
+      ),
+    );
     await tester.tap(find.text('开始学习'));
     await tester.pumpAndSettle();
     expect(find.text('01:30'), findsOneWidget);
@@ -328,8 +402,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(store.plans.single.remainingSeconds, 88);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+    expect(store.plans.single.isRunning, isFalse);
     await tester.pump(const Duration(seconds: 30));
     expect(store.plans.single.remainingSeconds, 88);
     expect(store.plans.single.studiedSeconds, 2);
@@ -342,7 +417,7 @@ void main() {
     expect(await store.flush(), isTrue);
     final reopened = await StudyPlanStore.load(
       storage: storage,
-      now: () => today,
+      now: () => tester.binding.clock.now(),
     );
     addTearDown(reopened.dispose);
     expect(reopened.planById(id)!.remainingSeconds, 88);
@@ -352,7 +427,7 @@ void main() {
   testWidgets(
     'adjusted remaining time does not change target or studied time',
     (tester) async {
-      final store = StudyPlanStore(now: () => today);
+      final store = StudyPlanStore(now: () => tester.binding.clock.now());
       addTearDown(store.dispose);
       store.addPlan(name: '阅读', iconId: 'book', plannedSeconds: 60);
       final id = store.plans.single.id;

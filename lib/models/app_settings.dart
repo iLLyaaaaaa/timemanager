@@ -13,6 +13,9 @@ class AppSettings {
     this.localeCode = 'zh',
     this.timerAlertMode = 'sound',
     this.selectedAlertSound = 1,
+    this.soundSource = 'builtin',
+    this.customSoundPath,
+    this.customSoundName,
   });
 
   final ThemeMode themeMode;
@@ -26,6 +29,9 @@ class AppSettings {
   final String localeCode;
   final String timerAlertMode;
   final int selectedAlertSound;
+  final String soundSource;
+  final String? customSoundPath;
+  final String? customSoundName;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -39,6 +45,10 @@ class AppSettings {
     String? localeCode,
     String? timerAlertMode,
     int? selectedAlertSound,
+    String? soundSource,
+    String? customSoundPath,
+    String? customSoundName,
+    bool clearCustomSound = false,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     completionAlertEnabled:
@@ -54,10 +64,17 @@ class AppSettings {
     localeCode: localeCode ?? this.localeCode,
     timerAlertMode: timerAlertMode ?? this.timerAlertMode,
     selectedAlertSound: selectedAlertSound ?? this.selectedAlertSound,
+    soundSource: soundSource ?? this.soundSource,
+    customSoundPath: clearCustomSound
+        ? null
+        : customSoundPath ?? this.customSoundPath,
+    customSoundName: clearCustomSound
+        ? null
+        : customSoundName ?? this.customSoundName,
   );
 
-  Map<String, Object> toJson() => {
-    'version': 3,
+  Map<String, Object?> toJson() => {
+    'version': 4,
     'themeMode': themeMode.name,
     'completionAlertEnabled': completionAlertEnabled,
     'dailyResetHour': dailyResetHour,
@@ -69,12 +86,16 @@ class AppSettings {
     'localeCode': localeCode,
     'timerAlertMode': timerAlertMode,
     'selectedAlertSound': selectedAlertSound,
+    'soundSource': soundSource,
+    'customSoundPath': customSoundPath,
+    'customSoundName': customSoundName,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     if (json.containsKey('version') &&
         json['version'] != 2 &&
-        json['version'] != 3) {
+        json['version'] != 3 &&
+        json['version'] != 4) {
       throw const FormatException('Unknown settings version');
     }
     final mode = json['themeMode'];
@@ -137,6 +158,16 @@ class AppSettings {
               (json['selectedAlertSound'] as int) <= 5
           ? json['selectedAlertSound'] as int
           : 1,
+      soundSource:
+          json['soundSource'] == 'custom' && json['customSoundPath'] is String
+          ? 'custom'
+          : 'builtin',
+      customSoundPath: json['customSoundPath'] is String
+          ? json['customSoundPath'] as String
+          : null,
+      customSoundName: json['customSoundName'] is String
+          ? json['customSoundName'] as String
+          : null,
     );
   }
 }

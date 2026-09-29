@@ -558,4 +558,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get defaultHomeHeadline => '每天进步一点点';
+
+  @override
+  String get chooseLocalImage => '从本地选择图片';
+
+  @override
+  String get invalidLocalImage => '请选择小于 8 MB 的有效 PNG、JPEG 或 WebP 图片。';
+
+  @override
+  String get chooseLocalSound => '从本地选择铃声';
+
+  @override
+  String get invalidLocalSound => '无法使用该音频文件，请选择受支持的音频格式。';
+
+  @override
+  String get ncmUnsupported =>
+      '该文件为网易云音乐 NCM 格式，无法直接作为铃声使用。请选择 MP3、WAV、M4A 或 OGG 等标准音频文件。';
+
+  @override
+  String get cropImage => '裁剪图片';
+
+  @override
+  String get trimSound => '裁剪铃声';
+
+  @override
+  String get audioDuration => '音频总时长';
+
+  @override
+  String get audioStart => '开始位置';
+
+  @override
+  String get audioEnd => '结束位置';
+
+  @override
+  String get clipLength => '片段长度';
+
+  @override
+  String get saveClip => '保存片段';
+
+  @override
+  String get customSound => '自定义铃声';
+
+  @override
+  String get previewFailed => '无法播放这个铃声。';
+
+  @override
+  String get customSoundBackgroundFallback =>
+      '后台和锁屏时会尝试使用自定义铃声；若无法取得通知用的声音地址，则改用当前选定的内置铃声。';
+
+  @override
+  String get backgroundPauseUpdatedHint => '切换到其他应用时暂停；锁屏仍继续计时。';
 }

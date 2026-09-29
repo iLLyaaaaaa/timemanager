@@ -570,4 +570,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get defaultHomeHeadline => 'A little progress every day';
+
+  @override
+  String get chooseLocalImage => 'Choose image from device';
+
+  @override
+  String get invalidLocalImage =>
+      'Choose a valid PNG, JPEG, or WebP image under 8 MB.';
+
+  @override
+  String get chooseLocalSound => 'Choose from device';
+
+  @override
+  String get invalidLocalSound =>
+      'This audio file cannot be used. Please choose a supported audio format.';
+
+  @override
+  String get ncmUnsupported =>
+      'This NCM file cannot be used directly as an alert sound. Please choose a standard audio file such as MP3, WAV, M4A, or OGG.';
+
+  @override
+  String get cropImage => 'Crop image';
+
+  @override
+  String get trimSound => 'Trim alert sound';
+
+  @override
+  String get audioDuration => 'Total duration';
+
+  @override
+  String get audioStart => 'Start';
+
+  @override
+  String get audioEnd => 'End';
+
+  @override
+  String get clipLength => 'Selection length';
+
+  @override
+  String get saveClip => 'Save clip';
+
+  @override
+  String get customSound => 'Custom sound';
+
+  @override
+  String get previewFailed => 'This sound could not be played.';
+
+  @override
+  String get customSoundBackgroundFallback =>
+      'Background and lock-screen alerts try the custom sound; if a notification sound URI is unavailable, the selected built-in sound is used.';
+
+  @override
+  String get backgroundPauseUpdatedHint =>
+      'Pause when switching apps. Locking the screen keeps the timer running.';
 }

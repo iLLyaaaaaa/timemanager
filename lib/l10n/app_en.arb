@@ -331,5 +331,21 @@
       }
     }
   },
-  "defaultHomeHeadline": "A little progress every day"
+  "defaultHomeHeadline": "A little progress every day",
+  "chooseLocalImage": "Choose image from device",
+  "invalidLocalImage": "Choose a valid PNG, JPEG, or WebP image under 8 MB.",
+  "chooseLocalSound": "Choose from device",
+  "invalidLocalSound": "This audio file cannot be used. Please choose a supported audio format.",
+  "ncmUnsupported": "This NCM file cannot be used directly as an alert sound. Please choose a standard audio file such as MP3, WAV, M4A, or OGG.",
+  "cropImage": "Crop image",
+  "trimSound": "Trim alert sound",
+  "audioDuration": "Total duration",
+  "audioStart": "Start",
+  "audioEnd": "End",
+  "clipLength": "Selection length",
+  "saveClip": "Save clip",
+  "customSound": "Custom sound",
+  "previewFailed": "This sound could not be played.",
+  "customSoundBackgroundFallback": "Background and lock-screen alerts try the custom sound; if a notification sound URI is unavailable, the selected built-in sound is used.",
+  "backgroundPauseUpdatedHint": "Pause when switching apps. Locking the screen keeps the timer running."
 }

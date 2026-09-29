@@ -14,8 +14,9 @@ class SharedPreferencesSettingsStorage implements AppSettingsStorage {
   SharedPreferencesSettingsStorage({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
 
-  static const _key = 'app_settings_v3';
-  static const _previousKey = 'app_settings_v2';
+  static const _key = 'app_settings_v4';
+  static const _previousKey = 'app_settings_v3';
+  static const _olderKey = 'app_settings_v2';
   static const _legacyKey = 'app_settings_v1';
   final SharedPreferencesAsync _preferences;
 
@@ -23,6 +24,7 @@ class SharedPreferencesSettingsStorage implements AppSettingsStorage {
   Future<String?> read() async =>
       await _preferences.getString(_key) ??
       await _preferences.getString(_previousKey) ??
+      await _preferences.getString(_olderKey) ??
       await _preferences.getString(_legacyKey);
 
   @override
