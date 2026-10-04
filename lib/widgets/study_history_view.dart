@@ -17,6 +17,7 @@ class StudyHistoryView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final dateFormat = DateFormat.yMMMd(l10n.localeName);
+    final bestDay = summary.longestStudyDay;
     final longestDay = summary.days.fold<int>(
       0,
       (longest, day) =>
@@ -64,6 +65,40 @@ class StudyHistoryView extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppMetricGrid(
+                children: [
+                  AppMetric(
+                    label: l10n.historyDailyAverage,
+                    value: formatStudyDuration(summary.averageDailySeconds),
+                    valueKey: const ValueKey('history_daily_average'),
+                  ),
+                  AppMetric(
+                    label: l10n.historyBestDay,
+                    value: bestDay == null
+                        ? '—'
+                        : formatStudyDuration(bestDay.studiedSeconds),
+                    valueKey: const ValueKey('history_best_day'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (bestDay != null) ...[
+                Text(l10n.historyBestDayDate(dateFormat.format(bestDay.date))),
+                const SizedBox(height: 6),
+              ],
+              Text(
+                l10n.historyAverageExplanation,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),

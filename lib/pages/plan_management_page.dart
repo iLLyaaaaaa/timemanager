@@ -8,8 +8,11 @@ import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
+import '../utils/study_plan_query.dart';
+import '../widgets/study_plan_filter_bar.dart';
 import 'plan_edit_page.dart';
-import '../widgets/study_plan_icon.dart';
+import '../widgets/study_plan_layout.dart';
+import '../widgets/app_section_card.dart';
 import '../services/local_media_store.dart';
 import '../services/timer_alert_service.dart';
 import '../theme/app_theme.dart';
@@ -27,6 +30,8 @@ class PlanManagementPage extends StatefulWidget {
 class _PlanManagementPageState extends State<PlanManagementPage> {
   late final SettingsStore _settings = widget.settings ?? SettingsStore();
   bool _bulkMode = false;
+  final _searchController = TextEditingController();
+  StudyPlanFilter _filter = StudyPlanFilter.all;
   final Set<String> _selectedIds = {};
   final _media = LocalMediaStore();
   final _alerts = TimerAlertService();
@@ -52,6 +57,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     unawaited(_alerts.dispose());
     if (widget.settings == null) _settings.dispose();
     super.dispose();
@@ -67,6 +73,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
   }
 
   void _toggleBulkMode() {
+    FocusScope.of(context).unfocus();
     setState(() {
       _bulkMode = !_bulkMode;
       _selectedIds.clear();
@@ -205,24 +212,128 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
     }
   }
 
+  Widget _planCard(BuildContext context, StudyPlan plan) {
+    final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      key: ValueKey('manage_plan_${plan.id}'),
+      color: colors.surface,
+      shape: AppTheme.cardShape(colors),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            StudyPlanLayout(
+              plan: plan,
+              iconKey: ValueKey('manage_icon_${plan.id}'),
+              contentBuilder: (context, stacked) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StudyPlanTitle(name: plan.name),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.dailyPlanValue(
+                      formatStudyDuration(plan.plannedSeconds),
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: colors.onSurfaceVariant,
+                      fontFeatures: AppTheme.durationFeatures,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _bulkMode
+                        ? Semantics(
+                            label: plan.name,
+                            child: Checkbox(
+                              key: ValueKey('select_plan_${plan.id}'),
+                              value: _selectedIds.contains(plan.id),
+                              onChanged: (_) => _toggleSelection(plan.id),
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: () => _openEditor(plan),
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                tooltip: l10n.editPlanTooltip(plan.name),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                onPressed: () => _deletePlan(plan),
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                tooltip: l10n.deletePlanTooltip(plan.name),
+                                icon: const Icon(Icons.delete_outline_rounded),
+                                color: colors.error,
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            if (!_bulkMode) ...[
+              const Divider(height: 20),
+              SwitchListTile(
+                key: ValueKey('background_pause_${plan.id}'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  l10n.backgroundPause,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                value: plan.pauseWhenBackgrounded,
+                onChanged: (value) => _setBackgroundPause(plan, value),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final compact =
+        MediaQuery.sizeOf(context).width < 390 ||
+        MediaQuery.textScalerOf(context).scale(20) > 24;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.planManagement),
+        title: Text(
+          l10n.planManagement,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         actions: [
-          TextButton(
-            onPressed: _toggleBulkMode,
-            child: Text(
-              _bulkMode
-                  ? AppLocalizations.of(context)!.done
-                  : AppLocalizations.of(context)!.bulkManage,
+          if (compact)
+            IconButton(
+              key: const ValueKey('toggle_bulk_mode'),
+              onPressed: _toggleBulkMode,
+              tooltip: _bulkMode ? l10n.done : l10n.bulkManage,
+              icon: Icon(
+                _bulkMode ? Icons.check_rounded : Icons.checklist_rounded,
+              ),
+            )
+          else
+            TextButton(
+              key: const ValueKey('toggle_bulk_mode'),
+              onPressed: _toggleBulkMode,
+              child: Text(_bulkMode ? l10n.done : l10n.bulkManage),
             ),
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -231,152 +342,93 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
         builder: (context, _) {
           final plans = widget.store.plans;
           if (plans.isEmpty) {
-            return Center(
-              child: Text(AppLocalizations.of(context)!.noPlansManage),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.pagePadding,
-              16,
-              AppTheme.pagePadding,
-              96,
-            ),
-            itemCount: plans.length,
-            separatorBuilder: (_, _) =>
-                const SizedBox(height: AppTheme.cardSpacing),
-            itemBuilder: (context, index) {
-              final plan = plans[index];
-              return Card(
-                key: ValueKey('manage_plan_${plan.id}'),
-                margin: EdgeInsets.zero,
-                elevation: 0,
-                color: colors.surface,
-                shape: AppTheme.cardShape(colors),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+            return ListView(
+              padding: const EdgeInsets.all(AppTheme.pagePadding),
+              children: [
+                AppSectionCard(
                   child: Column(
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StudyPlanIcon(
-                            plan: plan,
-                            tileSize: StudyPlanIcon.cardTileSize,
-                            color: colors.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  plan.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        color: colors.onSurface,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.of(context)!.dailyPlanValue(
-                                    formatStudyDuration(plan.plannedSeconds),
-                                  ),
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: colors.onSurfaceVariant,
-                                        fontFeatures: AppTheme.durationFeatures,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _bulkMode
-                                      ? Checkbox(
-                                          key: ValueKey(
-                                            'select_plan_${plan.id}',
-                                          ),
-                                          value: _selectedIds.contains(plan.id),
-                                          onChanged: (_) =>
-                                              _toggleSelection(plan.id),
-                                        )
-                                      : Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              onPressed: () =>
-                                                  _openEditor(plan),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 48,
-                                                minHeight: 48,
-                                              ),
-                                              padding: const EdgeInsets.all(8),
-                                              tooltip: AppLocalizations.of(
-                                                context,
-                                              )!.editPlanTooltip(plan.name),
-                                              icon: const Icon(
-                                                Icons.edit_outlined,
-                                              ),
-                                            ),
-                                            IconButton(
-                                              onPressed: () =>
-                                                  _deletePlan(plan),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 48,
-                                                minHeight: 48,
-                                              ),
-                                              padding: const EdgeInsets.all(8),
-                                              tooltip: AppLocalizations.of(
-                                                context,
-                                              )!.deletePlanTooltip(plan.name),
-                                              icon: const Icon(
-                                                Icons.delete_outline_rounded,
-                                              ),
-                                              color: colors.error,
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Icon(
+                        Icons.library_add_outlined,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      if (!_bulkMode) ...[
-                        const Divider(height: 20),
-                        SwitchListTile(
-                          key: ValueKey('background_pause_${plan.id}'),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            AppLocalizations.of(context)!.backgroundPause,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          value: plan.pauseWhenBackgrounded,
-                          onChanged: (value) =>
-                              _setBackgroundPause(plan, value),
-                        ),
-                      ],
+                      const SizedBox(height: 16),
+                      Text(l10n.noPlansManage, textAlign: TextAlign.center),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        key: const ValueKey('management_empty_add'),
+                        onPressed: () => _openEditor(),
+                        icon: const Icon(Icons.add_rounded),
+                        label: Text(l10n.addPlan),
+                      ),
                     ],
                   ),
                 ),
+              ],
+            );
+          }
+          // Bulk selection always uses the full list, including select-all.
+          final visiblePlans = _bulkMode
+              ? plans
+              : filterStudyPlans(
+                  plans,
+                  query: _searchController.text,
+                  filter: _filter,
+                );
+          return ListView.builder(
+            key: const PageStorageKey('management_scroll'),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(
+              AppTheme.pagePadding,
+              16,
+              AppTheme.pagePadding,
+              compact ? 24 : 96,
+            ),
+            itemCount: 1 + (visiblePlans.isEmpty ? 1 : visiblePlans.length),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _bulkMode
+                      ? Text(l10n.bulkAllPlansHint)
+                      : StudyPlanFilterBar(
+                          plans: plans,
+                          controller: _searchController,
+                          filter: _filter,
+                          onQueryChanged: (_) => setState(() {}),
+                          onFilterChanged: (filter) =>
+                              setState(() => _filter = filter),
+                        ),
+                );
+              }
+              if (visiblePlans.isEmpty) {
+                return StudyPlanSearchEmpty(
+                  onReset: () => setState(() {
+                    _searchController.clear();
+                    _filter = StudyPlanFilter.all;
+                  }),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.cardSpacing),
+                child: _planCard(context, visiblePlans[index - 1]),
               );
             },
           );
         },
       ),
-      floatingActionButton: _bulkMode
+      floatingActionButton: _bulkMode || compact
           ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _openEditor(),
-              icon: const Icon(Icons.add_rounded),
-              label: Text(AppLocalizations.of(context)!.addPlan),
+          : AnimatedBuilder(
+              animation: widget.store,
+              builder: (context, _) => widget.store.plans.isEmpty
+                  ? const SizedBox.shrink()
+                  : FloatingActionButton.extended(
+                      onPressed: () => _openEditor(),
+                      icon: const Icon(Icons.add_rounded),
+                      label: Text(l10n.addPlan),
+                    ),
             ),
       bottomNavigationBar: _bulkMode
           ? AnimatedBuilder(
@@ -424,6 +476,32 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                   ),
                 );
               },
+            )
+          : compact
+          ? AnimatedBuilder(
+              animation: widget.store,
+              builder: (context, _) => widget.store.plans.isEmpty
+                  ? const SizedBox.shrink()
+                  : Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppTheme.pagePadding,
+                            12,
+                            AppTheme.pagePadding,
+                            16,
+                          ),
+                          child: FilledButton.icon(
+                            key: const ValueKey('add_plan_compact'),
+                            onPressed: () => _openEditor(),
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(l10n.addPlan),
+                          ),
+                        ),
+                      ),
+                    ),
             )
           : null,
     );

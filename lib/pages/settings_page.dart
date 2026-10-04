@@ -584,6 +584,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ThemeMode.dark => l10n.darkMode,
     };
     return ListView(
+      key: const PageStorageKey('settings_scroll'),
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
         12,

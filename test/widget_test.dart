@@ -77,7 +77,15 @@ void main() {
       find.descendant(of: card, matching: find.text('今日计划 01:31')),
       findsOneWidget,
     );
-    await tester.tap(find.descendant(of: card, matching: find.text('开始学习')));
+    final startButton = find.byKey(ValueKey('start_plan_$id'));
+    await tester.scrollUntilVisible(
+      startButton,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(startButton);
+    await tester.pumpAndSettle();
+    await tester.tap(startButton);
     await tester.pumpAndSettle();
     expect(find.text('01:31'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
@@ -135,18 +143,23 @@ void main() {
     store.startOrResume(second);
     store.studyOneSecond(second);
     await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
-    final firstButton = find.byKey(ValueKey('start_plan_$first'));
     final secondButton = find.byKey(ValueKey('start_plan_$second'));
-    expect(
-      find.descendant(of: firstButton, matching: find.text('开始学习')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: secondButton, matching: find.text('继续学习')),
-      findsOneWidget,
-    );
     for (final id in [first, second]) {
       final button = find.byKey(ValueKey('start_plan_$id'));
+      await tester.scrollUntilVisible(
+        button,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(button);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: button,
+          matching: find.text(id == first ? '开始学习' : '继续学习'),
+        ),
+        findsOneWidget,
+      );
       final card = find.byKey(ValueKey('plan_card_$id'));
       final buttonRect = tester.getRect(button);
       final cardRect = tester.getRect(card);
@@ -209,7 +222,15 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final iconRect = tester.getRect(find.byKey(ValueKey('plan_icon_$id')));
+      final icon = find.byKey(ValueKey('plan_icon_$id'));
+      await tester.scrollUntilVisible(
+        icon,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(icon);
+      await tester.pumpAndSettle();
+      final iconRect = tester.getRect(icon);
       expect(iconRect.width, 112);
       expect(iconRect.height, 112);
       expect(tester.takeException(), isNull);

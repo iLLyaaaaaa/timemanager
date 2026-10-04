@@ -689,4 +689,226 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backgroundPauseSettingHint =>
       'Set this separately for each plan in Plan Management. Switching apps pauses enabled plans; locking the screen keeps the timer running.';
+
+  @override
+  String get planDetails => 'Plan details';
+
+  @override
+  String get customPlanImage => 'Custom image selected';
+
+  @override
+  String get savingPlan => 'Saving…';
+
+  @override
+  String get discardPlanTitle => 'Discard changes?';
+
+  @override
+  String get discardPlanMessage =>
+      'Your changes to this plan have not been saved.';
+
+  @override
+  String get keepEditing => 'Keep editing';
+
+  @override
+  String get discardChanges => 'Discard changes';
+
+  @override
+  String get planNotPersistedTitle =>
+      'Changes haven\'t been saved to this device';
+
+  @override
+  String get planNotPersistedMessage =>
+      'The plan is still available in memory, but your changes may be lost if you leave and the app closes. Keep editing to retry saving.';
+
+  @override
+  String get leavePage => 'Leave';
+
+  @override
+  String get planFollowUpFailed =>
+      'The plan was saved, but some follow-up actions failed. Please retry.';
+
+  @override
+  String planCompletion(String percentage) {
+    return 'Completion: $percentage';
+  }
+
+  @override
+  String get searchPlans => 'Search plan names';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get filterAllPlans => 'All';
+
+  @override
+  String get filterNotStarted => 'Not started';
+
+  @override
+  String get filterInProgress => 'In progress';
+
+  @override
+  String get filterCompleted => 'Completed';
+
+  @override
+  String planFilterCount(String label, int count) {
+    return '$label · $count';
+  }
+
+  @override
+  String get noMatchingPlans =>
+      'No matching plans. Try another name or status.';
+
+  @override
+  String get resetPlanFilters => 'Show all plans';
+
+  @override
+  String get bulkAllPlansHint =>
+      'All plans are shown for bulk selection. Your search and filters return when you finish.';
+
+  @override
+  String get runningPlanHint => 'Your timer is running';
+
+  @override
+  String get pickUpPlanHint => 'Pick up an unfinished plan';
+
+  @override
+  String get openRunningTimer => 'Open timer';
+
+  @override
+  String get allPlansCompleted =>
+      'All of today\'s plans are complete. Your progress is saved in Statistics.';
+
+  @override
+  String get historyDailyAverage => 'Daily average';
+
+  @override
+  String get historyBestDay => 'Highest daily total';
+
+  @override
+  String historyBestDayDate(String date) {
+    return 'Highest study day: $date';
+  }
+
+  @override
+  String get historyAverageExplanation =>
+      'The average includes all 7 study days, including days with no recorded study.';
+
+  @override
+  String get studyReview => 'Study Review';
+
+  @override
+  String get reviewCalendar => 'Calendar';
+
+  @override
+  String get reviewRange => 'Date range';
+
+  @override
+  String get reviewCurrentStreak => 'Current streak';
+
+  @override
+  String get reviewLongestStreak => 'Longest streak';
+
+  @override
+  String reviewStudyDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reviewNotStudiedToday =>
+      'No study recorded today yet. Your streak can continue today.';
+
+  @override
+  String get reviewNoHistory =>
+      'No study history yet. Start studying to build your review.';
+
+  @override
+  String get reviewStreakExplanation =>
+      'Any actual study time counts as a study day. Until today ends, a streak ending yesterday is kept. Study days follow your daily reset time.';
+
+  @override
+  String get reviewMonthTotal => 'Month total';
+
+  @override
+  String get reviewActiveDays => 'Study days';
+
+  @override
+  String get reviewPreviousMonth => 'Previous month';
+
+  @override
+  String get reviewNextMonth => 'Next month';
+
+  @override
+  String get reviewBackToMonth => 'Back to this month';
+
+  @override
+  String get reviewHeatNone => '0';
+
+  @override
+  String get reviewHeat15 => '≤15 min';
+
+  @override
+  String get reviewHeat30 => '≤30 min';
+
+  @override
+  String get reviewHeat60 => '≤60 min';
+
+  @override
+  String get reviewHeatOver60 => '>60 min';
+
+  @override
+  String reviewDayDescription(String date, String duration) {
+    return '$date: studied $duration';
+  }
+
+  @override
+  String reviewFutureDay(String date) {
+    return '$date: future study day';
+  }
+
+  @override
+  String get reviewFutureLabel => 'Upcoming';
+
+  @override
+  String get reviewNoDayRecords => 'No study time recorded on this day.';
+
+  @override
+  String reviewDayTotal(String duration) {
+    return 'Total studied: $duration';
+  }
+
+  @override
+  String reviewDeletedPlans(int count) {
+    return 'Deleted plans ($count)';
+  }
+
+  @override
+  String get reviewLast30Days => 'Last 30 days';
+
+  @override
+  String get reviewThisMonth => 'This month';
+
+  @override
+  String get reviewCustomRange => 'Custom';
+
+  @override
+  String get reviewTotal => 'Total studied';
+
+  @override
+  String reviewAverageExplanation(int count) {
+    return 'The average includes all $count calendar study days in this range, including days with no recorded study.';
+  }
+
+  @override
+  String get reviewRecordNamesHint =>
+      'Existing plans show their current names. Deleted plans are combined and their study time is kept.';
+
+  @override
+  String get reviewClose => 'Close';
 }

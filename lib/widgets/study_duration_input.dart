@@ -8,10 +8,16 @@ class StudyDurationInput extends StatefulWidget {
     super.key,
     required this.initialSeconds,
     required this.label,
+    this.onChanged,
+    this.enabled = true,
+    this.stacked = false,
   });
 
   final int initialSeconds;
   final String label;
+  final ValueChanged<int?>? onChanged;
+  final bool enabled;
+  final bool stacked;
 
   @override
   State<StudyDurationInput> createState() => StudyDurationInputState();
@@ -21,6 +27,31 @@ class StudyDurationInputState extends State<StudyDurationInput> {
   late final TextEditingController _hours;
   late final TextEditingController _minutes;
   late final TextEditingController _seconds;
+  final _hoursFocus = FocusNode();
+  final _minutesFocus = FocusNode();
+  final _secondsFocus = FocusNode();
+
+  void focusFirstPart() => _hoursFocus.requestFocus();
+
+  BuildContext? get focusedPartContext {
+    for (final node in [_hoursFocus, _minutesFocus, _secondsFocus]) {
+      if (node.hasFocus) return node.context;
+    }
+    return null;
+  }
+
+  void focusInvalidPart() {
+    final controllers = [_hours, _minutes, _seconds];
+    final nodes = [_hoursFocus, _minutesFocus, _secondsFocus];
+    for (var index = 0; index < controllers.length; index++) {
+      final value = int.tryParse(controllers[index].text);
+      if (value == null || value < 0 || (index > 0 && value > 59)) {
+        nodes[index].requestFocus();
+        return;
+      }
+    }
+    _hoursFocus.requestFocus();
+  }
 
   @override
   void initState() {
@@ -41,6 +72,9 @@ class StudyDurationInputState extends State<StudyDurationInput> {
     _hours.dispose();
     _minutes.dispose();
     _seconds.dispose();
+    _hoursFocus.dispose();
+    _minutesFocus.dispose();
+    _secondsFocus.dispose();
     super.dispose();
   }
 
@@ -94,14 +128,53 @@ class StudyDurationInputState extends State<StudyDurationInput> {
         children: [
           Text(widget.label, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              _part(_hours, l10n.hours, 'duration_hours', field),
-              const SizedBox(width: 8),
-              _part(_minutes, l10n.minutes, 'duration_minutes', field),
-              const SizedBox(width: 8),
-              _part(_seconds, l10n.seconds, 'duration_seconds', field),
-            ],
+          Builder(
+            builder: (context) {
+              final parts = [
+                _part(
+                  _hours,
+                  _hoursFocus,
+                  _minutesFocus,
+                  l10n.hours,
+                  'duration_hours',
+                  field,
+                ),
+                _part(
+                  _minutes,
+                  _minutesFocus,
+                  _secondsFocus,
+                  l10n.minutes,
+                  'duration_minutes',
+                  field,
+                ),
+                _part(
+                  _seconds,
+                  _secondsFocus,
+                  null,
+                  l10n.seconds,
+                  'duration_seconds',
+                  field,
+                ),
+              ];
+              if (widget.stacked) {
+                return Column(
+                  children: [
+                    for (var index = 0; index < parts.length; index++) ...[
+                      if (index > 0) const SizedBox(height: 12),
+                      parts[index],
+                    ],
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  for (var index = 0; index < parts.length; index++) ...[
+                    if (index > 0) const SizedBox(width: 8),
+                    Expanded(child: parts[index]),
+                  ],
+                ],
+              );
+            },
           ),
           if (field.hasError) ...[
             const SizedBox(height: 8),
@@ -117,20 +190,31 @@ class StudyDurationInputState extends State<StudyDurationInput> {
 
   Widget _part(
     TextEditingController controller,
+    FocusNode focusNode,
+    FocusNode? nextFocus,
     String label,
     String key,
     FormFieldState<int> field,
-  ) => Expanded(
-    child: TextField(
-      key: ValueKey(key),
-      controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: (_) => field.didChange(totalSeconds),
+  ) => TextField(
+    key: ValueKey(key),
+    controller: controller,
+    focusNode: focusNode,
+    enabled: widget.enabled,
+    textInputAction: nextFocus == null
+        ? TextInputAction.done
+        : TextInputAction.next,
+    onSubmitted: (_) =>
+        nextFocus == null ? focusNode.unfocus() : nextFocus.requestFocus(),
+    keyboardType: TextInputType.number,
+    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
     ),
+    onChanged: (_) {
+      final seconds = totalSeconds;
+      field.didChange(seconds);
+      widget.onChanged?.call(seconds);
+    },
   );
 }

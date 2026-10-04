@@ -16,6 +16,7 @@ import 'package:hello_app/pages/plan_management_page.dart';
 import 'package:hello_app/pages/settings_page.dart';
 import 'package:hello_app/pages/study_home_page.dart';
 import 'package:hello_app/pages/study_statistics_page.dart';
+import 'package:hello_app/pages/study_review_page.dart';
 import 'package:hello_app/pages/study_timer_page.dart';
 import 'package:hello_app/services/timer_alert_service.dart';
 import 'package:hello_app/utils/study_history.dart';
@@ -73,8 +74,8 @@ Future<void> _capture(WidgetTester tester, String name) async {
   });
 }
 
-Future<void> _checkScroll(WidgetTester tester) async {
-  final scroll = find.byType(Scrollable).first;
+Future<void> _checkScroll(WidgetTester tester, {Finder? scrollable}) async {
+  final scroll = scrollable ?? find.byType(Scrollable).first;
   for (var step = 0; step < 16; step++) {
     final position = tester.state<ScrollableState>(scroll).position;
     if (position.pixels >= position.maxScrollExtent) break;
@@ -394,11 +395,62 @@ void main() {
                 );
                 await tester.pumpAndSettle();
                 expect(tester.takeException(), isNull, reason: page.key);
-                if (width == 390 && scale == 1) {
+                if (page.key == 'editor') {
+                  for (final id in ['book', 'code']) {
+                    final size = tester.getSize(
+                      find.byKey(ValueKey('icon_option_$id')),
+                    );
+                    expect(size.width, greaterThanOrEqualTo(48));
+                    expect(size.height, greaterThanOrEqualTo(48));
+                  }
+                }
+                if ((width == 390 && scale == 1) ||
+                    (width == 320 && scale == 1.5)) {
+                  final suffix = width == 320 ? '_320_large' : '';
                   await _capture(
                     tester,
-                    '${page.key}_${locale}_${brightness.name}',
+                    '${page.key}_${locale}_${brightness.name}$suffix',
                   );
+                }
+                if (page.key == 'home' || page.key == 'management') {
+                  for (final filter in [
+                    'all',
+                    'notStarted',
+                    'inProgress',
+                    'completed',
+                  ]) {
+                    final chip = find.byKey(ValueKey('plan_filter_$filter'));
+                    await tester.scrollUntilVisible(
+                      chip,
+                      160,
+                      scrollable: find.byType(Scrollable).first,
+                    );
+                    await tester.ensureVisible(chip);
+                    await tester.pumpAndSettle();
+                    expect(
+                      tester.getSize(chip).height,
+                      greaterThanOrEqualTo(48),
+                    );
+                  }
+                }
+                if (page.key == 'editor' && width == 390 && scale == 1) {
+                  tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+                  await tester.showKeyboard(
+                    find.byKey(const ValueKey('plan_name')),
+                  );
+                  await tester.pumpAndSettle();
+                  expect(
+                    tester
+                        .getRect(find.byKey(const ValueKey('save_plan')))
+                        .bottom,
+                    lessThanOrEqualTo(544),
+                  );
+                  await _capture(
+                    tester,
+                    'editor_keyboard_${locale}_${brightness.name}',
+                  );
+                  tester.view.resetViewInsets();
+                  await tester.pumpAndSettle();
                 }
                 if (page.key == 'statistics') {
                   await tester.tap(
@@ -406,12 +458,59 @@ void main() {
                   );
                   await tester.pumpAndSettle();
                   expect(tester.takeException(), isNull);
-                  if (width == 390 && scale == 1) {
+                  if ((width == 390 && scale == 1) ||
+                      (width == 320 && scale == 1.5)) {
+                    final suffix = width == 320 ? '_320_large' : '';
                     await _capture(
                       tester,
-                      'history_${locale}_${brightness.name}',
+                      'history_${locale}_${brightness.name}$suffix',
                     );
                   }
+                }
+                if (page.key == 'management') {
+                  final search = find.byKey(const ValueKey('plan_search'));
+                  await tester.scrollUntilVisible(
+                    search,
+                    -160,
+                    scrollable: find.byType(Scrollable).first,
+                  );
+                  await tester.ensureVisible(search);
+                  await tester.pumpAndSettle();
+                  await tester.enterText(search, 'Python');
+                  await tester.testTextInput.receiveAction(
+                    TextInputAction.search,
+                  );
+                  await tester.pumpAndSettle();
+                  expect(tester.takeException(), isNull);
+                  if ((width == 390 && scale == 1) ||
+                      (width == 320 && scale == 1.5)) {
+                    final suffix = width == 320 ? '_320_large' : '';
+                    await _capture(
+                      tester,
+                      'search_${locale}_${brightness.name}$suffix',
+                    );
+                  }
+                  await tester.enterText(search, 'no matching plan');
+                  await tester.testTextInput.receiveAction(
+                    TextInputAction.search,
+                  );
+                  await tester.pumpAndSettle();
+                  expect(tester.takeException(), isNull);
+                  if ((width == 390 && scale == 1) ||
+                      (width == 320 && scale == 1.5)) {
+                    final suffix = width == 320 ? '_320_large' : '';
+                    await _capture(
+                      tester,
+                      'no_results_${locale}_${brightness.name}$suffix',
+                    );
+                  }
+                  final reset = find.byKey(
+                    const ValueKey('reset_plan_filters'),
+                  );
+                  await tester.ensureVisible(reset);
+                  await tester.pumpAndSettle();
+                  await tester.tap(reset);
+                  await tester.pumpAndSettle();
                 }
                 if (page.key == 'settings') {
                   final picker = find.byKey(
@@ -435,6 +534,250 @@ void main() {
                   await tester.pumpAndSettle();
                 }
                 await _checkScroll(tester);
+                await tester.pumpWidget(const SizedBox());
+              }
+            },
+          );
+        }
+      }
+    }
+  }
+  for (final locale in ['zh', 'en']) {
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      testWidgets(
+        'editor confirms changes at narrow large type $locale ${brightness.name}',
+        (tester) async {
+          tester.view.physicalSize = const Size(320, 844);
+          tester.view.devicePixelRatio = 1;
+          tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+            tester.platformDispatcher.clearTextScaleFactorTestValue();
+          });
+          final store = StudyPlanStore();
+          addTearDown(store.dispose);
+          await tester.pumpWidget(
+            RepaintBoundary(
+              key: _previewKey,
+              child: localizedApp(
+                locale: Locale(locale),
+                brightness: brightness,
+                home: Builder(
+                  builder: (context) => Scaffold(
+                    body: FilledButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => PlanEditPage(store: store),
+                        ),
+                      ),
+                      child: const Text('Open editor'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.tap(find.text('Open editor'));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const ValueKey('plan_name')),
+            'Draft',
+          );
+          await tester.pump();
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+          expect(find.byType(AlertDialog), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          await _capture(
+            tester,
+            'editor_discard_${locale}_${brightness.name}_320_large',
+          );
+          await tester.tap(find.byKey(const ValueKey('keep_editing')));
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<TextFormField>(find.byKey(const ValueKey('plan_name')))
+                .controller!
+                .text,
+            'Draft',
+          );
+          await tester.enterText(find.byKey(const ValueKey('plan_name')), '');
+          await tester.pump();
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+          expect(find.byType(PlanEditPage), findsNothing);
+          expect(store.plans, isEmpty);
+          await tester.pumpWidget(const SizedBox());
+        },
+      );
+    }
+  }
+
+  for (final width in [320.0, 390.0]) {
+    for (final locale in ['zh', 'en']) {
+      for (final brightness in [Brightness.light, Brightness.dark]) {
+        for (final scale in [1.0, 1.5]) {
+          testWidgets(
+            'review fits $width $locale ${brightness.name} scale $scale',
+            (tester) async {
+              tester.view.physicalSize = Size(width, 844);
+              tester.view.devicePixelRatio = 1;
+              tester.platformDispatcher.textScaleFactorTestValue = scale;
+              addTearDown(() {
+                tester.view.resetPhysicalSize();
+                tester.view.resetDevicePixelRatio();
+                tester.platformDispatcher.clearTextScaleFactorTestValue();
+              });
+              var now = DateTime(2026, 9, 30, 12);
+              final settings = SettingsStore();
+              final store = StudyPlanStore(settings: settings, now: () => now);
+              addTearDown(settings.dispose);
+              addTearDown(store.dispose);
+              final plan = store.addPlan(
+                name: '高等数学与线性代数 Advanced Mathematics',
+                iconId: 'calculate',
+                plannedSeconds: 7200,
+              );
+              store.startOrResume(plan.id);
+              store.studySeconds(plan.id, 900);
+              for (final (day, seconds) in [(1, 1800), (3, 3601), (4, 1350)]) {
+                now = DateTime(2026, 10, day, 12);
+                store.refreshForToday();
+                store.startOrResume(plan.id);
+                store.studySeconds(plan.id, seconds);
+              }
+              final deleted = store.addPlan(
+                name: 'Deleted',
+                iconId: 'book',
+                plannedSeconds: 90,
+              );
+              store.startOrResume(deleted.id);
+              store.studySeconds(deleted.id, 45);
+              store.deletePlan(deleted.id);
+              final capture =
+                  (width == 390 && scale == 1) ||
+                  (width == 320 && scale == 1.5);
+              final suffix = width == 320 ? '_320_large' : '';
+              final name = '${locale}_${brightness.name}$suffix';
+              Future<void> tapVisible(Finder target) async {
+                await tester.scrollUntilVisible(
+                  target,
+                  180,
+                  scrollable: find.byType(Scrollable).first,
+                );
+                await tester.ensureVisible(target);
+                await tester.pumpAndSettle();
+                await tester.tap(target);
+                await tester.pumpAndSettle();
+              }
+
+              Future<void> top() async {
+                tester
+                    .state<ScrollableState>(find.byType(Scrollable).first)
+                    .position
+                    .jumpTo(0);
+                await tester.pumpAndSettle();
+              }
+
+              try {
+                await tester.pumpWidget(
+                  RepaintBoundary(
+                    key: _previewKey,
+                    child: localizedApp(
+                      home: StudyReviewPage(store: store),
+                      locale: Locale(locale),
+                      brightness: brightness,
+                    ),
+                  ),
+                );
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_overview_$name');
+                final day = find.byKey(
+                  const ValueKey('calendar_day_2026-10-04'),
+                );
+                await tester.scrollUntilVisible(
+                  day,
+                  180,
+                  scrollable: find.byType(Scrollable).first,
+                );
+                await tester.ensureVisible(day);
+                await tester.pumpAndSettle();
+                expect(
+                  find.byKey(const ValueKey('review_month_grid')),
+                  width == 390 && scale == 1 ? findsOneWidget : findsNothing,
+                );
+                expect(tester.getSize(day).width, greaterThanOrEqualTo(48));
+                expect(tester.getSize(day).height, greaterThanOrEqualTo(48));
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_calendar_$name');
+                await tester.tap(day);
+                await tester.pumpAndSettle();
+                expect(
+                  find.byKey(const ValueKey('review_day_total')),
+                  findsOneWidget,
+                );
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_day_$name');
+                await _checkScroll(
+                  tester,
+                  scrollable: find
+                      .descendant(
+                        of: find.byKey(const ValueKey('review_day_entries')),
+                        matching: find.byType(Scrollable),
+                      )
+                      .first,
+                );
+                await tester.tap(
+                  find.byKey(const ValueKey('review_close_day')),
+                );
+                await tester.pumpAndSettle();
+                await top();
+                await tapVisible(
+                  find.text(locale == 'zh' ? '范围统计' : 'Date range'),
+                );
+                await tester.scrollUntilVisible(
+                  find.byKey(const ValueKey('review_range_total')),
+                  180,
+                  scrollable: find.byType(Scrollable).first,
+                );
+                await tester.ensureVisible(
+                  find.byKey(const ValueKey('review_range_total')),
+                );
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+                if (capture) {
+                  await tester.ensureVisible(
+                    find.byKey(const ValueKey('review_range_last30')),
+                  );
+                  await tester.pumpAndSettle();
+                  await _capture(tester, 'review_range_$name');
+                }
+                await top();
+                await tapVisible(
+                  find.byKey(const ValueKey('review_range_custom')),
+                );
+                expect(find.byType(DateRangePickerDialog), findsOneWidget);
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_picker_$name');
+                await tester.binding.handlePopRoute();
+                await tester.pumpAndSettle();
+                await _checkScroll(tester);
+                store.clearLearningData();
+                await tester.pumpAndSettle();
+                await top();
+                expect(
+                  tester
+                      .widget<Text>(
+                        find.byKey(const ValueKey('review_current_streak')),
+                      )
+                      .data,
+                  locale == 'zh' ? '0 天' : '0 days',
+                );
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_empty_$name');
+              } finally {
                 await tester.pumpWidget(const SizedBox());
               }
             },

@@ -1297,6 +1297,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set this separately for each plan in Plan Management. Switching apps pauses enabled plans; locking the screen keeps the timer running.'**
   String get backgroundPauseSettingHint;
+
+  /// No description provided for @planDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan details'**
+  String get planDetails;
+
+  /// No description provided for @customPlanImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom image selected'**
+  String get customPlanImage;
+
+  /// No description provided for @savingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get savingPlan;
+
+  /// No description provided for @discardPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get discardPlanTitle;
+
+  /// No description provided for @discardPlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes to this plan have not been saved.'**
+  String get discardPlanMessage;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get keepEditing;
+
+  /// No description provided for @discardChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes'**
+  String get discardChanges;
+
+  /// No description provided for @planNotPersistedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes haven\'t been saved to this device'**
+  String get planNotPersistedTitle;
+
+  /// No description provided for @planNotPersistedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The plan is still available in memory, but your changes may be lost if you leave and the app closes. Keep editing to retry saving.'**
+  String get planNotPersistedMessage;
+
+  /// No description provided for @leavePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get leavePage;
+
+  /// No description provided for @planFollowUpFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The plan was saved, but some follow-up actions failed. Please retry.'**
+  String get planFollowUpFailed;
+
+  /// No description provided for @planCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion: {percentage}'**
+  String planCompletion(String percentage);
+
+  /// No description provided for @searchPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Search plan names'**
+  String get searchPlans;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @filterAllPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAllPlans;
+
+  /// No description provided for @filterNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get filterNotStarted;
+
+  /// No description provided for @filterInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get filterInProgress;
+
+  /// No description provided for @filterCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get filterCompleted;
+
+  /// No description provided for @planFilterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} · {count}'**
+  String planFilterCount(String label, int count);
+
+  /// No description provided for @noMatchingPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching plans. Try another name or status.'**
+  String get noMatchingPlans;
+
+  /// No description provided for @resetPlanFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all plans'**
+  String get resetPlanFilters;
+
+  /// No description provided for @bulkAllPlansHint.
+  ///
+  /// In en, this message translates to:
+  /// **'All plans are shown for bulk selection. Your search and filters return when you finish.'**
+  String get bulkAllPlansHint;
+
+  /// No description provided for @runningPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your timer is running'**
+  String get runningPlanHint;
+
+  /// No description provided for @pickUpPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up an unfinished plan'**
+  String get pickUpPlanHint;
+
+  /// No description provided for @openRunningTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Open timer'**
+  String get openRunningTimer;
+
+  /// No description provided for @allPlansCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'All of today\'s plans are complete. Your progress is saved in Statistics.'**
+  String get allPlansCompleted;
+
+  /// No description provided for @historyDailyAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily average'**
+  String get historyDailyAverage;
+
+  /// No description provided for @historyBestDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest daily total'**
+  String get historyBestDay;
+
+  /// No description provided for @historyBestDayDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest study day: {date}'**
+  String historyBestDayDate(String date);
+
+  /// No description provided for @historyAverageExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'The average includes all 7 study days, including days with no recorded study.'**
+  String get historyAverageExplanation;
+
+  /// No description provided for @studyReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Study Review'**
+  String get studyReview;
+
+  /// No description provided for @reviewCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get reviewCalendar;
+
+  /// No description provided for @reviewRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get reviewRange;
+
+  /// No description provided for @reviewCurrentStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Current streak'**
+  String get reviewCurrentStreak;
+
+  /// No description provided for @reviewLongestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest streak'**
+  String get reviewLongestStreak;
+
+  /// No description provided for @reviewStudyDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String reviewStudyDays(int count);
+
+  /// No description provided for @reviewNotStudiedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No study recorded today yet. Your streak can continue today.'**
+  String get reviewNotStudiedToday;
+
+  /// No description provided for @reviewNoHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No study history yet. Start studying to build your review.'**
+  String get reviewNoHistory;
+
+  /// No description provided for @reviewStreakExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Any actual study time counts as a study day. Until today ends, a streak ending yesterday is kept. Study days follow your daily reset time.'**
+  String get reviewStreakExplanation;
+
+  /// No description provided for @reviewMonthTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Month total'**
+  String get reviewMonthTotal;
+
+  /// No description provided for @reviewActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Study days'**
+  String get reviewActiveDays;
+
+  /// No description provided for @reviewPreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get reviewPreviousMonth;
+
+  /// No description provided for @reviewNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get reviewNextMonth;
+
+  /// No description provided for @reviewBackToMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to this month'**
+  String get reviewBackToMonth;
+
+  /// No description provided for @reviewHeatNone.
+  ///
+  /// In en, this message translates to:
+  /// **'0'**
+  String get reviewHeatNone;
+
+  /// No description provided for @reviewHeat15.
+  ///
+  /// In en, this message translates to:
+  /// **'≤15 min'**
+  String get reviewHeat15;
+
+  /// No description provided for @reviewHeat30.
+  ///
+  /// In en, this message translates to:
+  /// **'≤30 min'**
+  String get reviewHeat30;
+
+  /// No description provided for @reviewHeat60.
+  ///
+  /// In en, this message translates to:
+  /// **'≤60 min'**
+  String get reviewHeat60;
+
+  /// No description provided for @reviewHeatOver60.
+  ///
+  /// In en, this message translates to:
+  /// **'>60 min'**
+  String get reviewHeatOver60;
+
+  /// No description provided for @reviewDayDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: studied {duration}'**
+  String reviewDayDescription(String date, String duration);
+
+  /// No description provided for @reviewFutureDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: future study day'**
+  String reviewFutureDay(String date);
+
+  /// No description provided for @reviewFutureLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get reviewFutureLabel;
+
+  /// No description provided for @reviewNoDayRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No study time recorded on this day.'**
+  String get reviewNoDayRecords;
+
+  /// No description provided for @reviewDayTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total studied: {duration}'**
+  String reviewDayTotal(String duration);
+
+  /// No description provided for @reviewDeletedPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted plans ({count})'**
+  String reviewDeletedPlans(int count);
+
+  /// No description provided for @reviewLast30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get reviewLast30Days;
+
+  /// No description provided for @reviewThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get reviewThisMonth;
+
+  /// No description provided for @reviewCustomRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get reviewCustomRange;
+
+  /// No description provided for @reviewTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total studied'**
+  String get reviewTotal;
+
+  /// No description provided for @reviewAverageExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'The average includes all {count} calendar study days in this range, including days with no recorded study.'**
+  String reviewAverageExplanation(int count);
+
+  /// No description provided for @reviewRecordNamesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing plans show their current names. Deleted plans are combined and their study time is kept.'**
+  String get reviewRecordNamesHint;
+
+  /// No description provided for @reviewClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get reviewClose;
 }
 
 class _AppLocalizationsDelegate

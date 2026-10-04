@@ -670,4 +670,209 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backgroundPauseSettingHint => '在计划管理中逐项设置。开启后切换应用会暂停，锁屏继续计时。';
+
+  @override
+  String get planDetails => '计划信息';
+
+  @override
+  String get customPlanImage => '已选择自定义图片';
+
+  @override
+  String get savingPlan => '正在保存…';
+
+  @override
+  String get discardPlanTitle => '放弃修改？';
+
+  @override
+  String get discardPlanMessage => '这个计划的修改尚未保存。';
+
+  @override
+  String get keepEditing => '继续编辑';
+
+  @override
+  String get discardChanges => '放弃修改';
+
+  @override
+  String get planNotPersistedTitle => '修改尚未写入本地';
+
+  @override
+  String get planNotPersistedMessage => '计划仍保留在内存中，但离开后若应用关闭，修改可能丢失。继续编辑可重试保存。';
+
+  @override
+  String get leavePage => '离开';
+
+  @override
+  String get planFollowUpFailed => '计划已保存，但部分后续处理未完成，请重试。';
+
+  @override
+  String planCompletion(String percentage) {
+    return '完成率：$percentage';
+  }
+
+  @override
+  String get searchPlans => '搜索计划名称';
+
+  @override
+  String get clearSearch => '清除搜索';
+
+  @override
+  String get filterAllPlans => '全部';
+
+  @override
+  String get filterNotStarted => '未开始';
+
+  @override
+  String get filterInProgress => '进行中';
+
+  @override
+  String get filterCompleted => '已完成';
+
+  @override
+  String planFilterCount(String label, int count) {
+    return '$label · $count';
+  }
+
+  @override
+  String get noMatchingPlans => '没有匹配的计划，试试其他名称或状态。';
+
+  @override
+  String get resetPlanFilters => '显示全部计划';
+
+  @override
+  String get bulkAllPlansHint => '批量选择显示全部计划；完成后恢复原来的搜索和筛选。';
+
+  @override
+  String get runningPlanHint => '计时正在继续';
+
+  @override
+  String get pickUpPlanHint => '接着完成这个计划';
+
+  @override
+  String get openRunningTimer => '查看计时';
+
+  @override
+  String get allPlansCompleted => '今天的计划已全部完成，学习进度已记录在统计中。';
+
+  @override
+  String get historyDailyAverage => '日均学习时长';
+
+  @override
+  String get historyBestDay => '最高单日时长';
+
+  @override
+  String historyBestDayDate(String date) {
+    return '学习最多的一天：$date';
+  }
+
+  @override
+  String get historyAverageExplanation => '日均按全部 7 个学习日计算，包含没有学习记录的日子。';
+
+  @override
+  String get studyReview => '学习复盘';
+
+  @override
+  String get reviewCalendar => '月历';
+
+  @override
+  String get reviewRange => '范围统计';
+
+  @override
+  String get reviewCurrentStreak => '当前连续学习';
+
+  @override
+  String get reviewLongestStreak => '最长连续学习';
+
+  @override
+  String reviewStudyDays(int count) {
+    return '$count 天';
+  }
+
+  @override
+  String get reviewNotStudiedToday => '今天还未学习，继续保持这份积累。';
+
+  @override
+  String get reviewNoHistory => '还没有学习记录，开始学习后就能查看复盘。';
+
+  @override
+  String get reviewStreakExplanation =>
+      '当天有实际学习就计入学习日；今天结束前，保留截至昨天的连续值。学习日沿用设置中的每日重置时间。';
+
+  @override
+  String get reviewMonthTotal => '月累计学习';
+
+  @override
+  String get reviewActiveDays => '学习天数';
+
+  @override
+  String get reviewPreviousMonth => '上个月';
+
+  @override
+  String get reviewNextMonth => '下个月';
+
+  @override
+  String get reviewBackToMonth => '返回本月';
+
+  @override
+  String get reviewHeatNone => '0';
+
+  @override
+  String get reviewHeat15 => '≤15 分钟';
+
+  @override
+  String get reviewHeat30 => '≤30 分钟';
+
+  @override
+  String get reviewHeat60 => '≤60 分钟';
+
+  @override
+  String get reviewHeatOver60 => '>60 分钟';
+
+  @override
+  String reviewDayDescription(String date, String duration) {
+    return '$date：已学习 $duration';
+  }
+
+  @override
+  String reviewFutureDay(String date) {
+    return '$date：尚未到来的学习日';
+  }
+
+  @override
+  String get reviewFutureLabel => '尚未到来';
+
+  @override
+  String get reviewNoDayRecords => '这一天还没有学习时长记录。';
+
+  @override
+  String reviewDayTotal(String duration) {
+    return '当日累计学习：$duration';
+  }
+
+  @override
+  String reviewDeletedPlans(int count) {
+    return '已删除计划（$count 项）';
+  }
+
+  @override
+  String get reviewLast30Days => '近 30 天';
+
+  @override
+  String get reviewThisMonth => '本月';
+
+  @override
+  String get reviewCustomRange => '自定义';
+
+  @override
+  String get reviewTotal => '累计学习';
+
+  @override
+  String reviewAverageExplanation(int count) {
+    return '日均按范围内全部 $count 个学习日计算，包含没有学习记录的日子。';
+  }
+
+  @override
+  String get reviewRecordNamesHint => '现存计划显示当前名称；已删除计划合并展示，其学习时长仍然保留。';
+
+  @override
+  String get reviewClose => '关闭';
 }

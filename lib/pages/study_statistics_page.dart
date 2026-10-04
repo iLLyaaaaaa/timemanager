@@ -7,9 +7,10 @@ import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
 import '../utils/study_history.dart';
 import '../widgets/study_history_view.dart';
-import '../widgets/study_plan_icon.dart';
+import '../widgets/study_plan_layout.dart';
 import '../widgets/app_section_card.dart';
 import '../theme/app_theme.dart';
+import 'study_review_page.dart';
 
 class StudyStatisticsPage extends StatefulWidget {
   const StudyStatisticsPage({super.key, required this.store});
@@ -22,6 +23,20 @@ class StudyStatisticsPage extends StatefulWidget {
 
 class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
   bool _showHistory = false;
+  bool _restoredView = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_restoredView) {
+      _showHistory =
+          PageStorage.maybeOf(context)
+                  ?.readState(context, identifier: 'statistics_show_history')
+              as bool? ??
+          false;
+      _restoredView = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +60,7 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
     final colors = Theme.of(context).colorScheme;
 
     return ListView(
+      key: PageStorageKey('statistics_scroll_$_showHistory'),
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
         12,
@@ -68,8 +84,28 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
           ],
           selected: {_showHistory},
           onSelectionChanged: (selection) {
+            PageStorage.maybeOf(context)?.writeState(
+              context,
+              selection.single,
+              identifier: 'statistics_show_history',
+            );
             setState(() => _showHistory = selection.single);
           },
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: const ValueKey('open_study_review'),
+            onPressed: store.hasLoadError
+                ? null
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => StudyReviewPage(store: store),
+                    ),
+                  ),
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: Text(AppLocalizations.of(context)!.studyReview),
+          ),
         ),
         const SizedBox(height: 16),
         if (_showHistory)
@@ -171,19 +207,20 @@ class _PlanStatisticsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final plannedSeconds = plan.plannedSeconds;
-    final remainingSeconds = plan.hasStartedToday
+    final remaining = plan.hasStartedToday
         ? plan.remainingSeconds
-        : plannedSeconds;
-    final completion = _completion(plan.studiedSeconds, plannedSeconds);
+        : plan.plannedSeconds;
+    final completion = _completion(plan.studiedSeconds, plan.plannedSeconds);
     final colors = Theme.of(context).colorScheme;
-    final detailStyle = Theme.of(context).textTheme.bodyMedium
-        ?.copyWith(fontSize: 14, height: 1.25, color: colors.onSurfaceVariant);
-
+    final l10n = AppLocalizations.of(context)!;
+    final detailStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      fontSize: 14,
+      height: 1.4,
+      color: colors.onSurfaceVariant,
+      fontFeatures: AppTheme.durationFeatures,
+    );
     return Card(
       key: ValueKey('statistics_${plan.id}'),
-      margin: EdgeInsets.zero,
-      elevation: 0,
       color: colors.surface,
       shape: AppTheme.cardShape(colors),
       child: Padding(
@@ -191,89 +228,49 @@ class _PlanStatisticsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                StudyPlanIcon(
-                  key: ValueKey('statistics_icon_${plan.id}'),
-                  plan: plan,
-                  tileSize: StudyPlanIcon.cardTileSize,
-                  color: colors.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              plan.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: colors.onSurface,
-                                  ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _percent(completion),
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colors.primary,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context)!
-                            .statPlanned(formatStudyDuration(plannedSeconds)),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: detailStyle,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        AppLocalizations.of(context)!.statStudied(
-                          formatStudyDuration(plan.studiedSeconds),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: detailStyle,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.statRemaining(formatStudyDuration(remainingSeconds)),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: detailStyle,
-                      ),
-                      if (plan.studiedSeconds > plannedSeconds) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          AppLocalizations.of(context)!.statOver(
-                            formatStudyDuration(
-                              plan.studiedSeconds - plannedSeconds,
-                            ),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: detailStyle,
-                        ),
-                      ],
-                    ],
+            StudyPlanLayout(
+              plan: plan,
+              iconKey: ValueKey('statistics_icon_${plan.id}'),
+              contentBuilder: (context, stacked) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StudyPlanTitle(name: plan.name),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.planCompletion(_percent(completion)),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colors.primary,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.statPlanned(formatStudyDuration(plan.plannedSeconds)),
+                    style: detailStyle,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.statStudied(formatStudyDuration(plan.studiedSeconds)),
+                    style: detailStyle,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.statRemaining(formatStudyDuration(remaining)),
+                    style: detailStyle,
+                  ),
+                  if (plan.studiedSeconds > plan.plannedSeconds) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      l10n.statOver(
+                        formatStudyDuration(
+                          plan.studiedSeconds - plan.plannedSeconds,
+                        ),
+                      ),
+                      style: detailStyle,
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             ClipRRect(

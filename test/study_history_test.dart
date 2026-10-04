@@ -56,6 +56,9 @@ void main() {
     ]);
     expect(summary.totalStudiedSeconds, 211);
     expect(summary.activeDays, 3);
+    expect(summary.averageDailySeconds, 30);
+    expect(summary.longestStudyDay?.date, DateTime(2026, 10, 4));
+    expect(summary.longestStudyDay?.studiedSeconds, 180);
   });
 
   test('recent week uses calendar dates across years and leap days', () {
@@ -66,6 +69,8 @@ void main() {
     expect(newYear.days.last.date, DateTime(2026, 12, 27));
     expect(newYear.activeDays, 0);
     expect(newYear.totalStudiedSeconds, 0);
+    expect(newYear.averageDailySeconds, 0);
+    expect(newYear.longestStudyDay, isNull);
 
     final leapYear = StudyHistorySummary.recentWeek(
       records: [_record('one', '2028-02-29', 90)],
@@ -74,6 +79,22 @@ void main() {
     expect(leapYear.days[1].date, DateTime(2028, 2, 29));
     expect(leapYear.days[1].studiedSeconds, 90);
     expect(leapYear.days.last.date, DateTime(2028, 2, 24));
+  });
+
+  test('daily average includes gaps and tied best days prefer the newest', () {
+    final summary = StudyHistorySummary.recentWeek(
+      lastDay: DateTime(2026, 10, 4),
+      records: [
+        _record('one', '2026-10-04', 30),
+        _record('two', '2026-10-04', 40),
+        _record('deleted', '2026-10-02', 70),
+        _record('outside', '2026-09-27', 1000),
+        _record('future', '2026-10-05', 1000),
+      ],
+    );
+    expect(summary.averageDailySeconds, 20);
+    expect(summary.longestStudyDay?.date, DateTime(2026, 10, 4));
+    expect(summary.longestStudyDay?.studiedSeconds, 70);
   });
 
   test('daily reset and reload retain deleted-plan history', () async {

@@ -133,23 +133,23 @@ class StudyPlanStore extends ChangeNotifier {
     if (changed) _changed();
   }
 
-  void addPlan({
+  StudyPlan addPlan({
     required String name,
     required String iconId,
     required int plannedSeconds,
     String? customIconPath,
   }) {
     refreshForToday();
-    _plans.add(
-      StudyPlan(
-        id: 'custom_${_nextId++}',
-        name: name,
-        iconId: iconId,
-        plannedSeconds: plannedSeconds,
-        customIconPath: customIconPath,
-      ),
+    final plan = StudyPlan(
+      id: 'custom_${_nextId++}',
+      name: name,
+      iconId: iconId,
+      plannedSeconds: plannedSeconds,
+      customIconPath: customIconPath,
     );
+    _plans.add(plan);
     _changed();
+    return plan;
   }
 
   void updatePlan(StudyPlan updated) {

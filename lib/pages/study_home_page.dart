@@ -6,6 +6,8 @@ import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
+import '../utils/study_plan_query.dart';
+import '../widgets/study_plan_filter_bar.dart';
 import '../widgets/study_plan_card.dart';
 import '../widgets/app_section_card.dart';
 import '../theme/app_theme.dart';
@@ -34,10 +36,14 @@ class StudyHomePage extends StatefulWidget {
 
 class _StudyHomePageState extends State<StudyHomePage> {
   int _selectedIndex = 0;
+  final _pageStorage = PageStorageBucket();
+  final _searchController = TextEditingController();
+  StudyPlanFilter _filter = StudyPlanFilter.all;
   late final SettingsStore _settings = widget.settings ?? SettingsStore();
 
   @override
   void dispose() {
+    _searchController.dispose();
     if (widget.settings == null) _settings.dispose();
     super.dispose();
   }
@@ -168,14 +174,18 @@ class _StudyHomePageState extends State<StudyHomePage> {
                 ]
               : null,
         ),
-        body: switch (_selectedIndex) {
-          0 => _buildHome(context),
-          1 => StudyStatisticsPage(store: widget.store),
-          _ => SettingsPage(settings: _settings, plans: widget.store),
-        },
+        body: PageStorage(
+          bucket: _pageStorage,
+          child: switch (_selectedIndex) {
+            0 => _buildHome(context),
+            1 => StudyStatisticsPage(store: widget.store),
+            _ => SettingsPage(settings: _settings, plans: widget.store),
+          },
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) {
+            FocusScope.of(context).unfocus();
             widget.store.refreshForToday();
             setState(() => _selectedIndex = index);
           },
@@ -214,8 +224,16 @@ class _StudyHomePageState extends State<StudyHomePage> {
       (total, plan) => total + plan.studiedSeconds,
     );
     final completedPlans = plans.where((plan) => plan.isCompletedToday).length;
+    final continuePlan = planToContinue(plans);
+    final visiblePlans = filterStudyPlans(
+      plans,
+      query: _searchController.text,
+      filter: _filter,
+    );
 
     return ListView(
+      key: const PageStorageKey('home_scroll'),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(
         AppTheme.pagePadding,
         12,
@@ -278,6 +296,52 @@ class _StudyHomePageState extends State<StudyHomePage> {
                   ),
                 ],
               ),
+              if (continuePlan != null) ...[
+                const Divider(height: 32),
+                Text(
+                  continuePlan.isRunning
+                      ? l10n.runningPlanHint
+                      : l10n.pickUpPlanHint,
+                  style: TextStyle(color: colors.onPrimaryContainer),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  continuePlan.name,
+                  semanticsLabel: continuePlan.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: colors.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('home_resume_plan'),
+                    onPressed: () => _startStudy(continuePlan),
+                    icon: Icon(
+                      continuePlan.isRunning
+                          ? Icons.timer_outlined
+                          : Icons.play_arrow_rounded,
+                    ),
+                    label: Text(
+                      continuePlan.isRunning
+                          ? l10n.openRunningTimer
+                          : l10n.continueStudy,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ] else if (plans.isNotEmpty &&
+                  completedPlans == plans.length) ...[
+                const SizedBox(height: 16),
+                Text(
+                  l10n.allPlansCompleted,
+                  style: TextStyle(color: colors.onPrimaryContainer),
+                ),
+              ],
             ],
           ),
         ),
@@ -300,6 +364,16 @@ class _StudyHomePageState extends State<StudyHomePage> {
           ],
         ),
         const SizedBox(height: 12),
+        if (plans.isNotEmpty) ...[
+          StudyPlanFilterBar(
+            plans: plans,
+            controller: _searchController,
+            filter: _filter,
+            onQueryChanged: (_) => setState(() {}),
+            onFilterChanged: (filter) => setState(() => _filter = filter),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (plans.isEmpty)
           AppSectionCard(
             child: Column(
@@ -333,8 +407,15 @@ class _StudyHomePageState extends State<StudyHomePage> {
               ],
             ),
           )
+        else if (visiblePlans.isEmpty)
+          StudyPlanSearchEmpty(
+            onReset: () => setState(() {
+              _searchController.clear();
+              _filter = StudyPlanFilter.all;
+            }),
+          )
         else
-          for (final plan in plans) ...[
+          for (final plan in visiblePlans) ...[
             StudyPlanCard(plan: plan, onStart: () => _startStudy(plan)),
             const SizedBox(height: AppTheme.cardSpacing),
           ],

@@ -397,7 +397,7 @@ void main() {
       localizedApp(home: PlanManagementPage(store: store)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('批量管理'));
+    await tester.tap(find.byKey(const ValueKey('toggle_bulk_mode')));
     await tester.pumpAndSettle();
     expect(find.byType(SwitchListTile), findsNothing);
     expect(find.text('开启后台自动暂停'), findsNothing);
@@ -448,7 +448,15 @@ void main() {
         home: StudyHomePage(store: store, screenState: _UnlockedScreen()),
       ),
     );
-    await tester.tap(find.text('开始学习'));
+    final startButton = find.byKey(ValueKey('start_plan_$id'));
+    await tester.scrollUntilVisible(
+      startButton,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(startButton);
+    await tester.pumpAndSettle();
+    await tester.tap(startButton);
     await tester.pumpAndSettle();
     expect(find.text('01:30'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
@@ -457,17 +465,26 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(store.plans.single.remainingSeconds, 88);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pumpAndSettle();
     expect(store.plans.single.isRunning, isFalse);
     await tester.pump(const Duration(seconds: 30));
     expect(store.plans.single.remainingSeconds, 88);
     expect(store.plans.single.studiedSeconds, 2);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(find.text('开始'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('今日剩余 01:28'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('今日剩余 01:28'), findsOneWidget);
     expect(await store.flush(), isTrue);
     final reopened = await StudyPlanStore.load(
@@ -544,7 +561,7 @@ void main() {
       expect(rect.width, StudyPlanIcon.cardTileSize);
       expect(rect.height, StudyPlanIcon.cardTileSize);
       final title = tester.widget<Text>(find.text('啊啊啊啊我要草坨'));
-      expect(title.maxLines, 1);
+      expect(title.maxLines, 2);
       expect(title.overflow, TextOverflow.ellipsis);
       expect(tester.takeException(), isNull);
     }
