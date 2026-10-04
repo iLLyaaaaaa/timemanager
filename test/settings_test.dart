@@ -280,7 +280,7 @@ void main() {
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('新增计划默认时长'), 200);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.ensureVisible(find.text('新增计划默认时长'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('新增计划默认时长'));
     await tester.pumpAndSettle();
@@ -314,7 +314,7 @@ void main() {
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('恢复默认设置'), 200);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.ensureVisible(find.text('恢复默认设置'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('恢复默认设置'));
     await tester.pumpAndSettle();

@@ -22,23 +22,25 @@ class StudyIconPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          AppLocalizations.of(context)!.chooseIcon,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              AppLocalizations.of(context)!.chooseIcon,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const Spacer(),
-            Text(
-              AppLocalizations.of(context)!.currentIcon(
-                localizedStudyIconLabel(
-                  AppLocalizations.of(context)!,
-                  selectedId,
+            Icon(selected.icon, color: colors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context)!.currentIcon(
+                  localizedStudyIconLabel(
+                    AppLocalizations.of(context)!,
+                    selectedId,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(selected.icon, color: colors.primary),
           ],
         ),
         const SizedBox(height: 12),

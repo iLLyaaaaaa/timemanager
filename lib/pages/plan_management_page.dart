@@ -12,6 +12,7 @@ import 'plan_edit_page.dart';
 import '../widgets/study_plan_icon.dart';
 import '../services/local_media_store.dart';
 import '../services/timer_alert_service.dart';
+import '../theme/app_theme.dart';
 
 class PlanManagementPage extends StatefulWidget {
   const PlanManagementPage({super.key, required this.store, this.settings});
@@ -235,23 +236,23 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.pagePadding,
+              16,
+              AppTheme.pagePadding,
+              96,
+            ),
             itemCount: plans.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 18),
+            separatorBuilder: (_, _) =>
+                const SizedBox(height: AppTheme.cardSpacing),
             itemBuilder: (context, index) {
               final plan = plans[index];
               return Card(
                 key: ValueKey('manage_plan_${plan.id}'),
                 margin: EdgeInsets.zero,
-                elevation: 2,
-                shadowColor: colors.shadow.withValues(alpha: 0.14),
-                color: colors.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                  side: BorderSide(
-                    color: colors.outlineVariant.withValues(alpha: 0.7),
-                  ),
-                ),
+                elevation: 0,
+                color: colors.surface,
+                shape: AppTheme.cardShape(colors),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -285,13 +286,12 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                   AppLocalizations.of(context)!.dailyPlanValue(
                                     formatStudyDuration(plan.plannedSeconds),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500,
                                         color: colors.onSurfaceVariant,
+                                        fontFeatures: AppTheme.durationFeatures,
                                       ),
                                 ),
                                 const SizedBox(height: 8),
@@ -313,8 +313,8 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                               onPressed: () =>
                                                   _openEditor(plan),
                                               constraints: const BoxConstraints(
-                                                minWidth: 44,
-                                                minHeight: 44,
+                                                minWidth: 48,
+                                                minHeight: 48,
                                               ),
                                               padding: const EdgeInsets.all(8),
                                               tooltip: AppLocalizations.of(
@@ -328,8 +328,8 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                               onPressed: () =>
                                                   _deletePlan(plan),
                                               constraints: const BoxConstraints(
-                                                minWidth: 44,
-                                                minHeight: 44,
+                                                minWidth: 48,
+                                                minHeight: 48,
                                               ),
                                               padding: const EdgeInsets.all(8),
                                               tooltip: AppLocalizations.of(
@@ -338,6 +338,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                                               icon: const Icon(
                                                 Icons.delete_outline_rounded,
                                               ),
+                                              color: colors.error,
                                             ),
                                           ],
                                         ),

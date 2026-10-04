@@ -494,6 +494,8 @@ void main() {
       await tester.tap(find.text('开始'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 3));
+      await tester.ensureVisible(find.text('调整时间'));
+      await tester.pump();
       await tester.tap(find.text('调整时间'));
       await tester.pumpAndSettle();
       expect(find.text('开始'), findsOneWidget);

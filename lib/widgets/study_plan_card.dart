@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
 import 'study_plan_icon.dart';
+import '../theme/app_theme.dart';
 
 class StudyPlanCard extends StatelessWidget {
   const StudyPlanCard({super.key, required this.plan, required this.onStart});
@@ -29,7 +30,7 @@ class StudyPlanCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       color: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      shape: AppTheme.cardShape(colors),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: LayoutBuilder(
@@ -61,12 +62,11 @@ class StudyPlanCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         status,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 16,
                           color: colors.secondary,
                           fontWeight: FontWeight.w500,
+                          fontFeatures: AppTheme.durationFeatures,
                         ),
                       ),
                       if (plan.hasStartedToday)
@@ -74,12 +74,11 @@ class StudyPlanCard extends StatelessWidget {
                           AppLocalizations.of(context)!.planDuration(
                             formatStudyDuration(plan.plannedSeconds),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 fontSize: 14,
                                 color: colors.onSurfaceVariant,
+                                fontFeatures: AppTheme.durationFeatures,
                               ),
                         ),
                       const SizedBox(height: 10),
@@ -91,7 +90,6 @@ class StudyPlanCard extends StatelessWidget {
                                       StudyPlanIcon.cardTileSize -
                                       12)
                                   .clamp(0.0, 112.0),
-                          height: 44,
                           child: FilledButton(
                             key: ValueKey('start_plan_${plan.id}'),
                             onPressed: onStart,
@@ -99,8 +97,10 @@ class StudyPlanCard extends StatelessWidget {
                               backgroundColor: colors.primary,
                               foregroundColor: colors.onPrimary,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
+                                horizontal: 10,
+                                vertical: 12,
                               ),
+                              minimumSize: const Size(0, 48),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -111,8 +111,6 @@ class StudyPlanCard extends StatelessWidget {
                                   : plan.hasStartedToday
                                   ? AppLocalizations.of(context)!.continueStudy
                                   : AppLocalizations.of(context)!.startStudy,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,

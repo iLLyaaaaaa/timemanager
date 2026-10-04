@@ -11,6 +11,8 @@ import '../widgets/study_duration_input.dart';
 import '../services/timer_alert_service.dart';
 import '../services/local_media_store.dart';
 import 'sound_trim_page.dart';
+import '../widgets/app_section_card.dart';
+import '../theme/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
@@ -234,6 +236,139 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  String _soundName(int sound, AppLocalizations l10n) => switch (sound) {
+    1 => l10n.sound1,
+    2 => l10n.sound2,
+    3 => l10n.sound3,
+    4 => l10n.sound4,
+    _ => l10n.sound5,
+  };
+
+  Future<void> _selectBuiltinSound(int sound) async {
+    await _alerts.stopPreview();
+    if (!mounted) return;
+    final oldPath = settings.settings.customSoundPath;
+    settings.update(
+      settings.settings.copyWith(
+        selectedAlertSound: sound,
+        soundSource: 'builtin',
+        clearCustomSound: true,
+      ),
+    );
+    await _saveSettings(context);
+    if (await settings.flush()) {
+      await _syncRunningNotifications();
+      await _media.deleteIfManaged(oldPath, 'custom_sounds');
+    }
+  }
+
+  Future<void> _chooseSound() async {
+    String? action;
+    try {
+      action = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (sheetContext) => AnimatedBuilder(
+          animation: settings,
+          builder: (context, _) {
+            final value = settings.settings;
+            final l10n = AppLocalizations.of(context)!;
+            return SafeArea(
+              top: false,
+              child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.72,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 8, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.alertSound,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                          ),
+                          IconButton(
+                            key: const ValueKey('close_sound_picker'),
+                            tooltip: MaterialLocalizations.of(context)
+                                .closeButtonTooltip,
+                            onPressed: () => Navigator.pop(sheetContext),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
+                        children: [
+                          for (var sound = 1; sound <= 5; sound++)
+                            ListTile(
+                              key: ValueKey('alert_sound_$sound'),
+                              selected:
+                                  value.soundSource == 'builtin' &&
+                                  value.selectedAlertSound == sound,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              leading: Icon(
+                                value.soundSource == 'builtin' &&
+                                        value.selectedAlertSound == sound
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                              ),
+                              title: Text(_soundName(sound, l10n)),
+                              trailing: IconButton(
+                                tooltip: l10n.preview,
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                onPressed: () => _previewSound(builtin: sound),
+                              ),
+                              onTap: () => _selectBuiltinSound(sound),
+                            ),
+                          const Divider(indent: 16, endIndent: 16),
+                          ListTile(
+                            key: const ValueKey('choose_local_sound'),
+                            leading: const Icon(Icons.audio_file_outlined),
+                            title: Text(l10n.chooseLocalSound),
+                            subtitle: value.soundSource == 'custom'
+                                ? Text(
+                                    value.customSoundName ?? l10n.customSound,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                : null,
+                            selected: value.soundSource == 'custom',
+                            trailing:
+                                value.soundSource == 'custom' &&
+                                    value.customSoundPath != null
+                                ? IconButton(
+                                    tooltip: l10n.preview,
+                                    icon: const Icon(Icons.play_arrow_rounded),
+                                    onPressed: () => _previewSound(
+                                      customPath: value.customSoundPath,
+                                    ),
+                                  )
+                                : null,
+                            onTap: () => Navigator.pop(sheetContext, 'custom'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } finally {
+      await _alerts.stopPreview();
+    }
+    if (action == 'custom' && mounted) await _chooseCustomSound();
+  }
+
   Future<void> _saveSettings(BuildContext context) async {
     if (!await settings.flush() && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -444,22 +579,28 @@ class _SettingsPageState extends State<SettingsPage> {
         '${value.dailyResetHour.toString().padLeft(2, '0')}:'
         '${value.dailyResetMinute.toString().padLeft(2, '0')}';
     final themeName = switch (value.themeMode) {
-      ThemeMode.system => AppLocalizations.of(context)!.followSystem,
-      ThemeMode.light => AppLocalizations.of(context)!.lightMode,
-      ThemeMode.dark => AppLocalizations.of(context)!.darkMode,
+      ThemeMode.system => l10n.followSystem,
+      ThemeMode.light => l10n.lightMode,
+      ThemeMode.dark => l10n.darkMode,
     };
-
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.pagePadding,
+        12,
+        AppTheme.pagePadding,
+        24,
+      ),
       children: [
-        _section(context, AppLocalizations.of(context)!.appearance, [
+        _section(context, l10n.appearance, [
           ListTile(
-            title: Text(AppLocalizations.of(context)!.themeMode),
+            leading: const _SettingIcon(Icons.palette_outlined),
+            title: Text(l10n.themeMode),
             subtitle: Text(themeName),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _chooseTheme(context),
           ),
           ListTile(
+            leading: const _SettingIcon(Icons.language_rounded),
             title: Text(l10n.language),
             subtitle: Text(
               value.localeCode == 'en' ? l10n.english : l10n.chinese,
@@ -468,13 +609,15 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _chooseLanguage(context),
           ),
         ]),
-        _section(context, AppLocalizations.of(context)!.timing, [
+        _section(context, l10n.timing, [
           ListTile(
-            title: Text(AppLocalizations.of(context)!.backgroundPause),
-            subtitle: Text(l10n.backgroundPauseUpdatedHint),
+            leading: const _SettingIcon(Icons.pause_circle_outline_rounded),
+            title: Text(l10n.backgroundPause),
+            subtitle: Text(l10n.backgroundPauseSettingHint),
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context)!.dailyResetTime),
+            leading: const _SettingIcon(Icons.schedule_rounded),
+            title: Text(l10n.dailyResetTime),
             subtitle: Text(resetTime),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _chooseResetTime(context),
@@ -482,6 +625,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ]),
         _section(context, l10n.timerAlert, [
           ListTile(
+            leading: const _SettingIcon(Icons.notifications_none_rounded),
             title: Text(l10n.alertMode),
             subtitle: Text(switch (value.timerAlertMode) {
               'vibration' => l10n.vibration,
@@ -492,94 +636,57 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _chooseAlertMode(context),
           ),
           if (value.timerAlertMode == 'sound') ...[
-            ListTile(title: Text(l10n.alertSound)),
-            for (var sound = 1; sound <= 5; sound++)
-              ListTile(
-                key: ValueKey('alert_sound_$sound'),
-                leading: Icon(
-                  value.soundSource == 'builtin' &&
-                          value.selectedAlertSound == sound
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                ),
-                title: Text(switch (sound) {
-                  1 => l10n.sound1,
-                  2 => l10n.sound2,
-                  3 => l10n.sound3,
-                  4 => l10n.sound4,
-                  _ => l10n.sound5,
-                }),
-                trailing: IconButton(
-                  tooltip: l10n.preview,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  onPressed: () => _previewSound(builtin: sound),
-                ),
-                onTap: () {
-                  final oldPath = value.customSoundPath;
-                  settings.update(
-                    value.copyWith(
-                      selectedAlertSound: sound,
-                      soundSource: 'builtin',
-                      clearCustomSound: true,
-                    ),
-                  );
-                  unawaited(
-                    _saveSettings(context).then((_) async {
-                      if (await settings.flush()) {
-                        await _syncRunningNotifications();
-                        await _media.deleteIfManaged(oldPath, 'custom_sounds');
-                      }
-                    }),
-                  );
-                },
-              ),
             ListTile(
-              key: const ValueKey('choose_local_sound'),
-              leading: Icon(
+              key: const ValueKey('open_sound_picker'),
+              leading: const _SettingIcon(Icons.music_note_outlined),
+              title: Text(l10n.alertSound),
+              subtitle: Text(
                 value.soundSource == 'custom'
-                    ? Icons.radio_button_checked
-                    : Icons.audio_file_outlined,
+                    ? (value.customSoundName ?? l10n.customSound)
+                    : _soundName(value.selectedAlertSound, l10n),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              title: Text(l10n.chooseLocalSound),
-              subtitle: value.soundSource == 'custom'
-                  ? Text(value.customSoundName ?? l10n.customSound)
-                  : null,
-              onTap: _chooseCustomSound,
-              trailing:
-                  value.soundSource == 'custom' && value.customSoundPath != null
-                  ? IconButton(
-                      tooltip: l10n.preview,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      onPressed: () =>
-                          _previewSound(customPath: value.customSoundPath),
-                    )
-                  : null,
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: _chooseSound,
             ),
             if (value.soundSource == 'custom')
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(l10n.customSoundBackgroundFallback),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: Text(
+                  l10n.customSoundBackgroundFallback,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
           ],
           if (value.timerAlertMode != 'none' &&
               (_notificationsAllowed == false || _exactAlarmsAllowed == false))
-            ListTile(
-              title: Text(l10n.notificationPermissionHint),
-              trailing: TextButton(
-                onPressed: _requestNotifications,
-                child: Text(l10n.notificationPermissionAction),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.notificationPermissionHint),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _requestNotifications,
+                    icon: const Icon(Icons.notifications_active_outlined),
+                    label: Text(l10n.notificationPermissionAction),
+                  ),
+                ],
               ),
             ),
         ]),
-        _section(context, AppLocalizations.of(context)!.planSection, [
+        _section(context, l10n.planSection, [
           ListTile(
-            title: Text(AppLocalizations.of(context)!.defaultPlanDuration),
+            leading: const _SettingIcon(Icons.timer_outlined),
+            title: Text(l10n.defaultPlanDuration),
             subtitle: Text(formatStudyDuration(value.defaultPlanSeconds)),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _chooseDefaultDuration(context),
           ),
           SwitchListTile(
-            title: Text(AppLocalizations.of(context)!.confirmBeforeDelete),
+            title: Text(l10n.confirmBeforeDelete),
             value: value.confirmBeforeDelete,
             onChanged: (enabled) {
               settings.update(value.copyWith(confirmBeforeDelete: enabled));
@@ -587,17 +694,26 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
         ]),
-        _section(context, AppLocalizations.of(context)!.dataManagement, [
+        _section(context, l10n.dataManagement, [
           ListTile(
-            title: Text(AppLocalizations.of(context)!.restoreDefaults),
+            leading: const _SettingIcon(Icons.restore_rounded),
+            title: Text(l10n.restoreDefaults),
+            subtitle: Text(l10n.restoreDefaultsMessage),
             onTap: () => _restoreDefaults(context),
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context)!.clearStudyData),
+            leading: const _SettingIcon(Icons.history_rounded),
+            title: Text(l10n.clearStudyData),
+            subtitle: Text(l10n.clearStudyMessage),
             onTap: () => _clearLearningData(context),
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context)!.clearAllData),
+            leading: const _SettingIcon(
+              Icons.delete_forever_outlined,
+              danger: true,
+            ),
+            title: Text(l10n.clearAllData),
+            subtitle: Text(l10n.clearAllMessage),
             textColor: Theme.of(context).colorScheme.error,
             onTap: () => _clearAllData(context),
           ),
@@ -607,27 +723,53 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _section(BuildContext context, String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
-        ),
-        Card(
-          margin: EdgeInsets.zero,
-          elevation: 0,
-          color: Theme.of(context).colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+          AppSectionCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (var index = 0; index < children.length; index++) ...[
+                  if (index > 0)
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                  children[index],
+                ],
+              ],
+            ),
           ),
-          child: Column(children: children),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingIcon extends StatelessWidget {
+  const _SettingIcon(this.icon, {this.danger = false});
+  final IconData icon;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: danger ? colors.errorContainer : colors.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        icon,
+        size: 20,
+        color: danger ? colors.onErrorContainer : colors.onPrimaryContainer,
+      ),
     );
   }
 }

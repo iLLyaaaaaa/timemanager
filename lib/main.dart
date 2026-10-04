@@ -6,6 +6,7 @@ import 'data/study_plan_storage.dart';
 import 'data/settings_store.dart';
 import 'pages/study_home_page.dart';
 import 'l10n/app_localizations.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,19 +76,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ],
         debugShowCheckedModeBanner: false,
         themeMode: _settings.settings.themeMode,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5267D8)),
-          scaffoldBackgroundColor: const Color(0xFFF7F8FC),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF5267D8),
-            brightness: Brightness.dark,
-          ),
-          scaffoldBackgroundColor: const Color(0xFF12151E),
-        ),
+        theme: AppTheme.forBrightness(Brightness.light),
+        darkTheme: AppTheme.forBrightness(Brightness.dark),
         home: StudyHomePage(store: _store, settings: _settings),
       ),
     );

@@ -7,6 +7,9 @@ import '../data/settings_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
 import '../widgets/study_plan_card.dart';
+import '../widgets/app_section_card.dart';
+import '../theme/app_theme.dart';
+import 'plan_edit_page.dart';
 import 'plan_management_page.dart';
 import 'settings_page.dart';
 import 'study_statistics_page.dart';
@@ -44,6 +47,14 @@ class _StudyHomePageState extends State<StudyHomePage> {
       MaterialPageRoute<void>(
         builder: (_) =>
             PlanManagementPage(store: widget.store, settings: _settings),
+      ),
+    );
+  }
+
+  void _addPlan() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PlanEditPage(store: widget.store, settings: _settings),
       ),
     );
   }
@@ -131,16 +142,28 @@ class _StudyHomePageState extends State<StudyHomePage> {
       animation: Listenable.merge([widget.store, _settings]),
       builder: (context, _) => Scaffold(
         appBar: AppBar(
-          title: Text(titles[_selectedIndex]),
+          title: Text(
+            titles[_selectedIndex],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           actions: _selectedIndex == 0
               ? [
-                  TextButton.icon(
-                    onPressed: _openManagement,
-                    icon: const Icon(Icons.tune_rounded),
-                    label: Text(AppLocalizations.of(context)!.managePlans),
-                  ),
+                  if (MediaQuery.sizeOf(context).width < 360 ||
+                      MediaQuery.textScalerOf(context).scale(1) > 1.2)
+                    IconButton(
+                      onPressed: _openManagement,
+                      tooltip: l10n.managePlans,
+                      icon: const Icon(Icons.tune_rounded),
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: _openManagement,
+                      icon: const Icon(Icons.tune_rounded),
+                      label: Text(AppLocalizations.of(context)!.managePlans),
+                    ),
                   const SizedBox(width: 8),
                 ]
               : null,
@@ -181,20 +204,27 @@ class _StudyHomePageState extends State<StudyHomePage> {
   Widget _buildHome(BuildContext context) {
     final plans = widget.store.plans;
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final totalSeconds = plans.fold<int>(
       0,
       (total, plan) => total + plan.plannedSeconds,
     );
+    final studiedSeconds = plans.fold<int>(
+      0,
+      (total, plan) => total + plan.studiedSeconds,
+    );
+    final completedPlans = plans.where((plan) => plan.isCompletedToday).length;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.pagePadding,
+        12,
+        AppTheme.pagePadding,
+        24,
+      ),
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: colors.primaryContainer,
-            borderRadius: BorderRadius.circular(20),
-          ),
+        AppSectionCard(
+          highlighted: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -228,34 +258,85 @@ class _StudyHomePageState extends State<StudyHomePage> {
                 )!.homeSummary(plans.length, formatStudyDuration(totalSeconds)),
                 style: TextStyle(color: colors.onPrimaryContainer),
               ),
+              const SizedBox(height: 20),
+              AppMetricGrid(
+                children: [
+                  AppMetric(
+                    label: l10n.studiedTime,
+                    value: formatStudyDuration(studiedSeconds),
+                    valueKey: const ValueKey('home_studied_total'),
+                    foreground: colors.onPrimaryContainer,
+                  ),
+                  AppMetric(
+                    label: l10n.completedPlans,
+                    value: l10n.completedPlansValue(
+                      completedPlans,
+                      plans.length,
+                    ),
+                    valueKey: const ValueKey('home_completed_total'),
+                    foreground: colors.onPrimaryContainer,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.todayPlan,
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          children: [
+            Text(
+              l10n.todayPlan,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            TextButton.icon(
+              key: const ValueKey('home_add_plan'),
+              onPressed: widget.store.hasLoadError ? null : _addPlan,
+              icon: const Icon(Icons.add_rounded, size: 20),
+              label: Text(l10n.addPlan),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         if (plans.isEmpty)
-          Card(
-            elevation: 0,
-            color: colors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                widget.store.hasLoadError
-                    ? AppLocalizations.of(context)!.planLoadFailed
-                    : AppLocalizations.of(context)!.noPlansHome,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+          AppSectionCard(
+            child: Column(
+              children: [
+                Icon(
+                  widget.store.hasLoadError
+                      ? Icons.error_outline_rounded
+                      : Icons.auto_stories_rounded,
+                  size: 48,
+                  color: widget.store.hasLoadError
+                      ? colors.error
+                      : colors.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  widget.store.hasLoadError
+                      ? l10n.planLoadFailed
+                      : l10n.noPlansHome,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                if (!widget.store.hasLoadError) ...[
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    key: const ValueKey('empty_add_plan'),
+                    onPressed: _addPlan,
+                    icon: const Icon(Icons.add_rounded),
+                    label: Text(l10n.addPlan),
+                  ),
+                ],
+              ],
             ),
           )
         else
           for (final plan in plans) ...[
             StudyPlanCard(plan: plan, onStart: () => _startStudy(plan)),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.cardSpacing),
           ],
       ],
     );

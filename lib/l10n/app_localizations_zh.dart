@@ -58,7 +58,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planLoadFailed => '计划数据读取失败，请先检查本地数据，避免覆盖旧记录。';
 
   @override
-  String get noPlansHome => '还没有学习计划，点击右上角“管理计划”新增。';
+  String get noPlansHome => '还没有学习计划。先创建一个小目标，开始今天的学习吧。';
 
   @override
   String get noPlans => '还没有学习计划';
@@ -607,4 +607,67 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backgroundPauseUpdatedHint => '切换到其他应用时暂停；锁屏仍继续计时。';
+
+  @override
+  String get statisticsToday => '今日';
+
+  @override
+  String get recentWeek => '近 7 天';
+
+  @override
+  String get historyTotal => '近 7 天累计学习';
+
+  @override
+  String historyActiveDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '7 天中有 $count 天学习',
+      zero: '还没有学习记录',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDateRange(String startDate, String endDate) {
+    return '$startDate 至 $endDate';
+  }
+
+  @override
+  String get dailyStudyDuration => '每日实际学习';
+
+  @override
+  String get noRecentStudy => '近 7 天还没有学习时长记录，开始一次学习后即可查看。';
+
+  @override
+  String get historyExplanation => '学习日按设置的每日重置时间划分，包含已删除计划的历史记录。';
+
+  @override
+  String get historyBarExplanation => '条形长度以这 7 天学习时长最多的一天为基准。';
+
+  @override
+  String get plannedTime => '计划时长';
+
+  @override
+  String get completedPlans => '已完成计划';
+
+  @override
+  String completedPlansValue(int completed, int total) {
+    return '$completed / $total';
+  }
+
+  @override
+  String get timerReadyState => '未开始';
+
+  @override
+  String get timerRunningState => '计时中';
+
+  @override
+  String get timerPausedState => '已暂停';
+
+  @override
+  String get timerCompleteState => '已完成';
+
+  @override
+  String get backgroundPauseSettingHint => '在计划管理中逐项设置。开启后切换应用会暂停，锁屏继续计时。';
 }

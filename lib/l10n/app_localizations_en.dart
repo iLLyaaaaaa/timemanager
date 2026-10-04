@@ -60,7 +60,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not load plans. Check local data before making changes.';
 
   @override
-  String get noPlansHome => 'No study plans yet. Tap Manage Plans to add one.';
+  String get noPlansHome =>
+      'No study plans yet. Create a small goal to start today\'s learning.';
 
   @override
   String get noPlans => 'No study plans yet';
@@ -620,4 +621,72 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backgroundPauseUpdatedHint =>
       'Pause when switching apps. Locking the screen keeps the timer running.';
+
+  @override
+  String get statisticsToday => 'Today';
+
+  @override
+  String get recentWeek => 'Last 7 days';
+
+  @override
+  String get historyTotal => 'Total studied in the last 7 days';
+
+  @override
+  String historyActiveDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Studied on $count of 7 days',
+      one: 'Studied on 1 of 7 days',
+      zero: 'No study days yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyDateRange(String startDate, String endDate) {
+    return '$startDate – $endDate';
+  }
+
+  @override
+  String get dailyStudyDuration => 'Daily study time';
+
+  @override
+  String get noRecentStudy =>
+      'No study time recorded in the last 7 days. Start a session to build your history.';
+
+  @override
+  String get historyExplanation =>
+      'Study days follow your daily reset time. Records from deleted plans are included.';
+
+  @override
+  String get historyBarExplanation =>
+      'Bar lengths are relative to the longest study day in these 7 days.';
+
+  @override
+  String get plannedTime => 'Planned time';
+
+  @override
+  String get completedPlans => 'Completed plans';
+
+  @override
+  String completedPlansValue(int completed, int total) {
+    return '$completed / $total';
+  }
+
+  @override
+  String get timerReadyState => 'Ready to start';
+
+  @override
+  String get timerRunningState => 'In progress';
+
+  @override
+  String get timerPausedState => 'Paused';
+
+  @override
+  String get timerCompleteState => 'Complete';
+
+  @override
+  String get backgroundPauseSettingHint =>
+      'Set this separately for each plan in Plan Management. Switching apps pauses enabled plans; locking the screen keeps the timer running.';
 }

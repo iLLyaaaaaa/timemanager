@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/study_icon_catalog.dart';
 import '../models/study_plan.dart';
+import '../theme/app_theme.dart';
 
 class StudyPlanIcon extends StatelessWidget {
   static const double cardTileSize = 112;
@@ -38,7 +39,7 @@ class StudyPlanIcon extends StatelessWidget {
       );
       final path = plan.customIconPath;
       return ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppTheme.imageRadius),
         child: SizedBox.square(
           dimension: tile,
           child: path == null || path.isEmpty

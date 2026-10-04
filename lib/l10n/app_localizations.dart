@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @noPlansHome.
   ///
   /// In en, this message translates to:
-  /// **'No study plans yet. Tap Manage Plans to add one.'**
+  /// **'No study plans yet. Create a small goal to start today\'s learning.'**
   String get noPlansHome;
 
   /// No description provided for @noPlans.
@@ -1195,6 +1195,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pause when switching apps. Locking the screen keeps the timer running.'**
   String get backgroundPauseUpdatedHint;
+
+  /// No description provided for @statisticsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get statisticsToday;
+
+  /// No description provided for @recentWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get recentWeek;
+
+  /// No description provided for @historyTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total studied in the last 7 days'**
+  String get historyTotal;
+
+  /// No description provided for @historyActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No study days yet} =1{Studied on 1 of 7 days} other{Studied on {count} of 7 days}}'**
+  String historyActiveDays(int count);
+
+  /// No description provided for @historyDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{startDate} – {endDate}'**
+  String historyDateRange(String startDate, String endDate);
+
+  /// No description provided for @dailyStudyDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily study time'**
+  String get dailyStudyDuration;
+
+  /// No description provided for @noRecentStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'No study time recorded in the last 7 days. Start a session to build your history.'**
+  String get noRecentStudy;
+
+  /// No description provided for @historyExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Study days follow your daily reset time. Records from deleted plans are included.'**
+  String get historyExplanation;
+
+  /// No description provided for @historyBarExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar lengths are relative to the longest study day in these 7 days.'**
+  String get historyBarExplanation;
+
+  /// No description provided for @plannedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned time'**
+  String get plannedTime;
+
+  /// No description provided for @completedPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed plans'**
+  String get completedPlans;
+
+  /// No description provided for @completedPlansValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} / {total}'**
+  String completedPlansValue(int completed, int total);
+
+  /// No description provided for @timerReadyState.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to start'**
+  String get timerReadyState;
+
+  /// No description provided for @timerRunningState.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get timerRunningState;
+
+  /// No description provided for @timerPausedState.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get timerPausedState;
+
+  /// No description provided for @timerCompleteState.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get timerCompleteState;
+
+  /// No description provided for @backgroundPauseSettingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set this separately for each plan in Plan Management. Switching apps pauses enabled plans; locking the screen keeps the timer running.'**
+  String get backgroundPauseSettingHint;
 }
 
 class _AppLocalizationsDelegate

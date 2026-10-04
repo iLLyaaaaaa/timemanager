@@ -202,9 +202,21 @@ void main() {
         ),
       ),
     );
+    final picker = find.byKey(const ValueKey('open_sound_picker'));
+    await tester.scrollUntilVisible(picker, 200);
+    await tester.ensureVisible(picker);
+    await tester.pumpAndSettle();
+    await tester.tap(picker);
+    await tester.pumpAndSettle();
+    final sheetScroll = find
+        .descendant(
+          of: find.byType(BottomSheet),
+          matching: find.byType(Scrollable),
+        )
+        .first;
     for (var sound = 1; sound <= 5; sound++) {
       final tile = find.byKey(ValueKey('alert_sound_$sound'));
-      await tester.scrollUntilVisible(tile, 200);
+      await tester.scrollUntilVisible(tile, 200, scrollable: sheetScroll);
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(of: tile, matching: find.byTooltip('试听')),
@@ -212,6 +224,10 @@ void main() {
       await tester.pump();
     }
     expect(alerts.previews, [1, 2, 3, 4, 5]);
+    final beforeClose = alerts.stops;
+    await tester.tap(find.byKey(const ValueKey('close_sound_picker')));
+    await tester.pumpAndSettle();
+    expect(alerts.stops, greaterThan(beforeClose));
     await tester.pumpWidget(const SizedBox.shrink());
     expect(alerts.stops, greaterThanOrEqualTo(1));
   });
@@ -272,8 +288,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(settings.settings.timerAlertMode, mode);
     }
+    final picker = find.byKey(const ValueKey('open_sound_picker'));
+    await tester.scrollUntilVisible(picker, 200);
+    await tester.ensureVisible(picker);
+    await tester.pumpAndSettle();
+    await tester.tap(picker);
+    await tester.pumpAndSettle();
     final selected = find.byKey(const ValueKey('alert_sound_3'));
-    await tester.scrollUntilVisible(selected, 200);
+    await tester.scrollUntilVisible(
+      selected,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.ensureVisible(selected);
     await tester.pumpAndSettle();
     await tester.tap(selected);

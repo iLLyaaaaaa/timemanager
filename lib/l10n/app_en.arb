@@ -16,7 +16,7 @@
   "headlineSaveFailed": "Could not save the home message. Please try again.",
   "todayPlan": "Today's Plan",
   "planLoadFailed": "Could not load plans. Check local data before making changes.",
-  "noPlansHome": "No study plans yet. Tap Manage Plans to add one.",
+  "noPlansHome": "No study plans yet. Create a small goal to start today's learning.",
   "noPlans": "No study plans yet",
   "viewProgress": "View Progress",
   "continueStudy": "Continue",
@@ -351,5 +351,37 @@
   "customSound": "Custom sound",
   "previewFailed": "This sound could not be played.",
   "customSoundBackgroundFallback": "Background and lock-screen alerts try the custom sound; if a notification sound URI is unavailable, the selected built-in sound is used.",
-  "backgroundPauseUpdatedHint": "Pause when switching apps. Locking the screen keeps the timer running."
+  "backgroundPauseUpdatedHint": "Pause when switching apps. Locking the screen keeps the timer running.",
+  "statisticsToday": "Today",
+  "recentWeek": "Last 7 days",
+  "historyTotal": "Total studied in the last 7 days",
+  "historyActiveDays": "{count, plural, =0{No study days yet} =1{Studied on 1 of 7 days} other{Studied on {count} of 7 days}}",
+  "@historyActiveDays": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "historyDateRange": "{startDate} – {endDate}",
+  "@historyDateRange": {
+    "placeholders": {
+      "startDate": { "type": "String" },
+      "endDate": { "type": "String" }
+    }
+  },
+  "dailyStudyDuration": "Daily study time",
+  "noRecentStudy": "No study time recorded in the last 7 days. Start a session to build your history.",
+  "historyExplanation": "Study days follow your daily reset time. Records from deleted plans are included.",
+  "historyBarExplanation": "Bar lengths are relative to the longest study day in these 7 days.",
+  "plannedTime": "Planned time",
+  "completedPlans": "Completed plans",
+  "completedPlansValue": "{completed} / {total}",
+  "@completedPlansValue": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "timerReadyState": "Ready to start",
+  "timerRunningState": "In progress",
+  "timerPausedState": "Paused",
+  "timerCompleteState": "Complete",
+  "backgroundPauseSettingHint": "Set this separately for each plan in Plan Management. Switching apps pauses enabled plans; locking the screen keeps the timer running."
 }

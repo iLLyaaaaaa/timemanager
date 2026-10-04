@@ -5,15 +5,27 @@ import '../l10n/app_localizations.dart';
 import '../data/study_plan_store.dart';
 import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
+import '../utils/study_history.dart';
+import '../widgets/study_history_view.dart';
 import '../widgets/study_plan_icon.dart';
+import '../widgets/app_section_card.dart';
+import '../theme/app_theme.dart';
 
-class StudyStatisticsPage extends StatelessWidget {
+class StudyStatisticsPage extends StatefulWidget {
   const StudyStatisticsPage({super.key, required this.store});
 
   final StudyPlanStore store;
 
   @override
+  State<StudyStatisticsPage> createState() => _StudyStatisticsPageState();
+}
+
+class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
+  bool _showHistory = false;
+
+  @override
   Widget build(BuildContext context) {
+    final store = widget.store;
     final plans = store.plans;
     final plannedSeconds = plans.fold<int>(
       0,
@@ -33,17 +45,45 @@ class StudyStatisticsPage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.pagePadding,
+        12,
+        AppTheme.pagePadding,
+        24,
+      ),
       children: [
-        Card(
-          margin: EdgeInsets.zero,
-          elevation: 0,
-          color: colors.primaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+        SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+              value: false,
+              icon: const Icon(Icons.today_outlined),
+              label: Text(AppLocalizations.of(context)!.statisticsToday),
+            ),
+            ButtonSegment(
+              value: true,
+              icon: const Icon(Icons.history_rounded),
+              label: Text(AppLocalizations.of(context)!.recentWeek),
+            ),
+          ],
+          selected: {_showHistory},
+          onSelectionChanged: (selection) {
+            setState(() => _showHistory = selection.single);
+          },
+        ),
+        const SizedBox(height: 16),
+        if (_showHistory)
+          StudyHistoryView(
+            summary: StudyHistorySummary.recentWeek(
+              records: store.records,
+              lastDay:
+                  store.settings?.studyDate(store.currentTime) ??
+                  store.currentTime,
+            ),
+          )
+        else ...[
+          AppSectionCard(
+            highlighted: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -54,20 +94,27 @@ class StudyStatisticsPage extends StatelessWidget {
                     color: colors.onPrimaryContainer,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  AppLocalizations.of(context)!
-                      .overviewPlanned(formatStudyDuration(plannedSeconds)),
+                const SizedBox(height: 20),
+                AppMetricGrid(
+                  children: [
+                    AppMetric(
+                      label: AppLocalizations.of(context)!.plannedTime,
+                      value: formatStudyDuration(plannedSeconds),
+                      foreground: colors.onPrimaryContainer,
+                    ),
+                    AppMetric(
+                      label: AppLocalizations.of(context)!.studiedTime,
+                      value: formatStudyDuration(studiedSeconds),
+                      foreground: colors.onPrimaryContainer,
+                    ),
+                    AppMetric(
+                      label: AppLocalizations.of(context)!.remainingTime,
+                      value: formatStudyDuration(remainingSeconds),
+                      foreground: colors.onPrimaryContainer,
+                    ),
+                  ],
                 ),
-                Text(
-                  AppLocalizations.of(context)!
-                      .overviewStudied(formatStudyDuration(studiedSeconds)),
-                ),
-                Text(
-                  AppLocalizations.of(context)!
-                      .overviewRemaining(formatStudyDuration(remainingSeconds)),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 Text(
                   AppLocalizations.of(context)!
                       .overviewCompletion(_percent(completion)),
@@ -77,34 +124,41 @@ class StudyStatisticsPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: completion.clamp(0.0, 1.0),
-                  minHeight: 7,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: completion.clamp(0.0, 1.0),
+                    minHeight: 8,
+                    color: colors.primary,
+                    backgroundColor: colors.onPrimaryContainer.withValues(
+                      alpha: 0.1,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.planProgress,
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        if (plans.isEmpty)
-          Card(
-            elevation: 0,
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(AppLocalizations.of(context)!.noPlans),
-            ),
-          )
-        else
-          for (final plan in plans) ...[
-            _PlanStatisticsCard(plan: plan),
-            const SizedBox(height: 18),
-          ],
+          const SizedBox(height: 24),
+          Text(
+            AppLocalizations.of(context)!.planProgress,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          if (plans.isEmpty)
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(AppLocalizations.of(context)!.noPlans),
+              ),
+            )
+          else
+            for (final plan in plans) ...[
+              _PlanStatisticsCard(plan: plan),
+              const SizedBox(height: AppTheme.cardSpacing),
+            ],
+        ],
       ],
     );
   }
@@ -129,13 +183,9 @@ class _PlanStatisticsCard extends StatelessWidget {
     return Card(
       key: ValueKey('statistics_${plan.id}'),
       margin: EdgeInsets.zero,
-      elevation: 1,
-      shadowColor: colors.shadow.withValues(alpha: 0.08),
+      elevation: 0,
       color: colors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.55)),
-      ),
+      shape: AppTheme.cardShape(colors),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

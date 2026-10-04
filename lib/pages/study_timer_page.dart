@@ -13,6 +13,9 @@ import '../widgets/study_duration_input.dart';
 import '../services/timer_alert_service.dart';
 import '../widgets/study_plan_icon.dart';
 import '../services/screen_state_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_section_card.dart';
+import '../widgets/study_timer_display.dart';
 
 class StudyTimerPage extends StatefulWidget {
   const StudyTimerPage({
@@ -379,6 +382,15 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final remainingSeconds = plan.hasStartedToday
         ? plan.remainingSeconds
         : totalSeconds;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final status = completed
+        ? l10n.timerCompleteState
+        : _isRunning
+        ? l10n.timerRunningState
+        : plan.hasStartedToday
+        ? l10n.timerPausedState
+        : l10n.timerReadyState;
 
     return Scaffold(
       appBar: AppBar(
@@ -388,14 +400,19 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.pagePadding,
+            16,
+            AppTheme.pagePadding,
+            32,
+          ),
           children: [
             Row(
               children: [
                 StudyPlanIcon(
                   plan: plan,
                   key: const ValueKey('timer_plan_icon'),
-                  size: 32,
+                  size: 48,
                   color: accent,
                 ),
                 const SizedBox(width: 12),
@@ -410,60 +427,39 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              AppLocalizations.of(context)!
-                  .todayPlanTotal(formatStudyDuration(plan.plannedSeconds)),
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 32),
-            Center(
-              child: SizedBox(
-                width: 240,
-                height: 240,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox.expand(
-                      child: CircularProgressIndicator(
-                        value: (remainingSeconds / totalSeconds).clamp(
-                          0.0,
-                          1.0,
-                        ),
-                        strokeWidth: 12,
-                        color: accent,
-                        backgroundColor: accent.withValues(alpha: 0.12),
-                      ),
+            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.center,
+              child: AnimatedSwitcher(
+                duration: AppTheme.transitionDuration(context),
+                child: Container(
+                  key: ValueKey(status),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _isRunning
+                        ? colors.primaryContainer
+                        : colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Text(
+                    status,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: _isRunning
+                          ? colors.onPrimaryContainer
+                          : colors.onSurfaceVariant,
                     ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.remainingTime,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          formatStudyDuration(remainingSeconds),
-                          style: TextStyle(
-                            fontSize: 44,
-                            fontWeight: FontWeight.bold,
-                            color: accent,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          completed
-                              ? AppLocalizations.of(context)!.completedToday
-                              : AppLocalizations.of(context)!
-                                    .focusEncouragement,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
+            ),
+            const SizedBox(height: 28),
+            StudyTimerDisplay(
+              remainingSeconds: remainingSeconds,
+              plannedSeconds: totalSeconds,
+              completed: completed,
             ),
             const SizedBox(height: 28),
             if (!completed)
@@ -496,26 +492,18 @@ class _StudyTimerPageState extends State<StudyTimerPage>
               label: Text(AppLocalizations.of(context)!.adjustTime),
             ),
             const SizedBox(height: 24),
-            Card(
-              margin: EdgeInsets.zero,
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(AppLocalizations.of(context)!.studiedTime),
-                    Text(
-                      formatStudyDuration(plan.studiedSeconds),
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
+            AppSectionCard(
+              child: AppMetricGrid(
+                children: [
+                  AppMetric(
+                    label: l10n.plannedTime,
+                    value: formatStudyDuration(plan.plannedSeconds),
+                  ),
+                  AppMetric(
+                    label: l10n.studiedTime,
+                    value: formatStudyDuration(plan.studiedSeconds),
+                  ),
+                ],
               ),
             ),
           ],
