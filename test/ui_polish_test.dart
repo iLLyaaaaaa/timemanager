@@ -754,6 +754,75 @@ void main() {
                   await tester.pumpAndSettle();
                   await _capture(tester, 'review_range_$name');
                 }
+                await tester.ensureVisible(
+                  find.byKey(const ValueKey('review_comparison')),
+                );
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_comparison_$name');
+                await tapVisible(
+                  find.byKey(const ValueKey('review_breakdown_title')),
+                );
+                await tester.ensureVisible(
+                  find.byKey(const ValueKey('review_plan_breakdown')),
+                );
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+                if (capture) await _capture(tester, 'review_breakdown_$name');
+                final allPlans = find.byKey(
+                  const ValueKey('review_view_all_plans'),
+                );
+                await tester.ensureVisible(allPlans);
+                await tester.pumpAndSettle();
+                expect(
+                  tester.getSize(allPlans).height,
+                  greaterThanOrEqualTo(48),
+                );
+                await tester.tap(allPlans);
+                await tester.pumpAndSettle();
+                expect(
+                  find.byKey(const ValueKey('review_range_plan_total')),
+                  findsOneWidget,
+                );
+                expect(tester.takeException(), isNull);
+                if (capture) {
+                  await _capture(tester, 'review_plan_details_$name');
+                }
+                await _checkScroll(
+                  tester,
+                  scrollable: find
+                      .descendant(
+                        of: find.byKey(
+                          const ValueKey('review_range_plan_entries'),
+                        ),
+                        matching: find.byType(Scrollable),
+                      )
+                      .first,
+                );
+                await tester.tap(
+                  find.byKey(const ValueKey('review_close_plan_times')),
+                );
+                await tester.pumpAndSettle();
+                final onlyDays = find.byKey(
+                  const ValueKey('review_only_study_days'),
+                );
+                await tapVisible(onlyDays);
+                await tester.ensureVisible(onlyDays);
+                await tester.pumpAndSettle();
+                expect(
+                  tester.getSize(onlyDays).height,
+                  greaterThanOrEqualTo(48),
+                );
+                expect(
+                  find.byKey(const ValueKey('range_day_2026-10-02')),
+                  findsNothing,
+                );
+                expect(tester.takeException(), isNull);
+                if (capture) {
+                  await _capture(tester, 'review_filtered_days_$name');
+                }
+                await tester.tap(onlyDays);
+                await tester.pumpAndSettle();
                 await top();
                 await tapVisible(
                   find.byKey(const ValueKey('review_range_custom')),
@@ -777,6 +846,17 @@ void main() {
                 );
                 expect(tester.takeException(), isNull);
                 if (capture) await _capture(tester, 'review_empty_$name');
+                await tapVisible(onlyDays);
+                await tester.ensureVisible(onlyDays);
+                await tester.pumpAndSettle();
+                expect(
+                  find.byKey(const ValueKey('review_no_filtered_days')),
+                  findsOneWidget,
+                );
+                expect(tester.takeException(), isNull);
+                if (capture) {
+                  await _capture(tester, 'review_filtered_empty_$name');
+                }
               } finally {
                 await tester.pumpWidget(const SizedBox());
               }

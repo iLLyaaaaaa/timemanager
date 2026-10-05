@@ -875,4 +875,65 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reviewClose => '关闭';
+
+  @override
+  String get reviewPeriodComparison => '上一周期对比';
+
+  @override
+  String reviewComparisonPeriod(int count, String start, String end) {
+    return '前 $count 天：$start 至 $end';
+  }
+
+  @override
+  String reviewTimeIncreased(String duration) {
+    return '增加 $duration';
+  }
+
+  @override
+  String reviewTimeDecreased(String duration) {
+    return '减少 $duration';
+  }
+
+  @override
+  String get reviewTimeUnchanged => '无变化';
+
+  @override
+  String reviewChangePercent(String percent) {
+    return '变化：$percent';
+  }
+
+  @override
+  String get reviewNoPreviousStudy => '上一周期无学习记录，不计算变化率。';
+
+  @override
+  String reviewPreviousTotal(String duration) {
+    return '上一周期累计：$duration';
+  }
+
+  @override
+  String get reviewPlanBreakdown => '计划时间分布';
+
+  @override
+  String get reviewBreakdownExplanation => '按实际学习时长排序，占比包含已删除计划。';
+
+  @override
+  String reviewTimeShare(String percent) {
+    return '占比 $percent';
+  }
+
+  @override
+  String reviewAllPlanTimes(int count) {
+    return '查看全部（$count 项）';
+  }
+
+  @override
+  String get reviewOnlyStudyDays => '只看学习日';
+
+  @override
+  String get reviewNoRangeStudy => '这个范围还没有学习时长记录。';
+
+  @override
+  String reviewRangeTotal(String duration) {
+    return '范围累计学习：$duration';
+  }
 }

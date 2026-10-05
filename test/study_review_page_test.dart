@@ -127,6 +127,251 @@ String? _text(WidgetTester tester, String key) =>
 
 void main() {
   testWidgets(
+    'range insights preserve totals while names, deletion and clearing refresh',
+    (tester) async {
+      _phone(tester);
+      final store = await _fixture();
+      addTearDown(store.dispose);
+      final storage = store.storage! as _Storage;
+      try {
+        await tester.pumpWidget(
+          localizedApp(home: StudyReviewPage(store: store)),
+        );
+        await tester.pumpAndSettle();
+        final beforeData = storage.value;
+        final beforeWrites = storage.writes;
+        await _rangeView(tester);
+        expect(_text(tester, 'review_comparison_percent'), '上一周期无学习记录，不计算变化率。');
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_breakdown_title')),
+        );
+        expect(_text(tester, 'review_plan_time_one'), '02:05:00');
+        expect(_text(tester, 'review_plan_share_one'), '占比 82%');
+        expect(_text(tester, 'review_plan_time_'), '04:10');
+        await _top(tester);
+        await _tap(tester, find.text('月历'));
+        await _rangeView(tester);
+        expect(_text(tester, 'review_plan_time_one'), '02:05:00');
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_range_thisMonth')),
+        );
+        expect(
+          _text(tester, 'review_comparison_dates'),
+          contains('2026年9月27日'),
+        );
+        expect(
+          _text(tester, 'review_comparison_dates'),
+          contains('2026年9月30日'),
+        );
+        expect(_text(tester, 'review_comparison_total'), '上一周期累计：01:40');
+        expect(_text(tester, 'review_comparison_change'), '增加 02:29:10');
+        await _tap(tester, find.byKey(const ValueKey('review_range_last30')));
+        await _tap(tester, find.byKey(const ValueKey('review_view_all_plans')));
+        expect(_text(tester, 'review_range_plan_total'), '范围累计学习：02:32:30');
+        final list = find.byKey(const ValueKey('review_range_plan_entries'));
+        final values = tester
+            .widgetList<Text>(
+              find.descendant(of: list, matching: find.byType(Text)),
+            )
+            .map((text) => text.data)
+            .toList();
+        expect(values, [
+          '高等数学 Advanced Mathematics',
+          '02:05:00',
+          '占比 82%',
+          'Python',
+          '23:20',
+          '占比 15.3%',
+          '已删除计划（2 项）',
+          '04:10',
+          '占比 2.7%',
+        ]);
+        expect(storage.value, beforeData);
+        expect(storage.writes, beforeWrites);
+        store.updatePlan(store.plans.first.copyWith(name: '数学新名称'));
+        store.deletePlan('two');
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: list, matching: find.text('数学新名称')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: list, matching: find.text('已删除计划（3 项）')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: list, matching: find.text('27:30')),
+          findsOneWidget,
+        );
+        expect(_text(tester, 'review_range_plan_total'), '范围累计学习：02:32:30');
+        store.clearLearningData();
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: list, matching: find.text('这个范围还没有学习时长记录。')),
+          findsOneWidget,
+        );
+        expect(_text(tester, 'review_range_plan_total'), '范围累计学习：00:00');
+        await tester.tap(find.byKey(const ValueKey('review_close_plan_times')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('review_view_all_plans')),
+          findsNothing,
+        );
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets(
+    'positive-day filter retains its state without changing range metrics',
+    (tester) async {
+      _phone(tester);
+      final store = await _fixture();
+      addTearDown(store.dispose);
+      try {
+        await tester.pumpWidget(
+          localizedApp(home: StudyReviewPage(store: store)),
+        );
+        await tester.pumpAndSettle();
+        await _rangeView(tester);
+        final total = _text(tester, 'review_range_total');
+        final average = _text(tester, 'review_range_average');
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_only_study_days')),
+        );
+        expect(
+          tester
+              .widget<FilterChip>(
+                find.byKey(const ValueKey('review_only_study_days')),
+              )
+              .selected,
+          isTrue,
+        );
+        expect(_text(tester, 'review_range_total'), total);
+        expect(_text(tester, 'review_range_average'), average);
+        expect(
+          find.byKey(const ValueKey('range_day_2026-10-01')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('range_day_2026-10-04')),
+          findsOneWidget,
+        );
+        await _top(tester);
+        await _tap(tester, find.text('月历'));
+        await _rangeView(tester);
+        expect(
+          tester
+              .widget<FilterChip>(
+                find.byKey(const ValueKey('review_only_study_days')),
+              )
+              .selected,
+          isTrue,
+        );
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_range_thisMonth')),
+        );
+        expect(
+          tester
+              .widget<FilterChip>(
+                find.byKey(const ValueKey('review_only_study_days')),
+              )
+              .selected,
+          isTrue,
+        );
+        store.clearLearningData();
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('review_no_filtered_days')),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(
+          find.byKey(const ValueKey('review_no_filtered_days')),
+          findsOneWidget,
+        );
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_only_study_days')),
+        );
+        expect(
+          tester
+              .widget<FilterChip>(
+                find.byKey(const ValueKey('review_only_study_days')),
+              )
+              .selected,
+          isFalse,
+        );
+        expect(
+          find.byKey(const ValueKey('range_day_2026-10-04')),
+          findsOneWidget,
+        );
+        expect(_text(tester, 'review_range_total'), '00:00');
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets(
+    'full range breakdown lazily includes more than the three preview rows',
+    (tester) async {
+      _phone(tester);
+      final store = StudyPlanStore(now: () => DateTime(2026, 10, 4, 12));
+      addTearDown(store.dispose);
+      for (var i = 0; i < 12; i++) {
+        final plan = store.addPlan(
+          name: '计划 $i',
+          iconId: 'book',
+          plannedSeconds: 900,
+        );
+        store.startOrResume(plan.id);
+        store.studySeconds(plan.id, (i + 1) * 10);
+      }
+      try {
+        await tester.pumpWidget(
+          localizedApp(home: StudyReviewPage(store: store)),
+        );
+        await tester.pumpAndSettle();
+        await _rangeView(tester);
+        await _tap(
+          tester,
+          find.byKey(const ValueKey('review_breakdown_title')),
+        );
+        expect(find.text('计划 11'), findsOneWidget);
+        expect(find.text('计划 0'), findsNothing);
+        await _tap(tester, find.byKey(const ValueKey('review_view_all_plans')));
+        final list = find.byKey(const ValueKey('review_range_plan_entries'));
+        expect(tester.widget<ListView>(list).semanticChildCount, 12);
+        final last = find.descendant(of: list, matching: find.text('计划 0'));
+        expect(last, findsNothing);
+        await tester.scrollUntilVisible(
+          last,
+          180,
+          scrollable: find
+              .descendant(of: list, matching: find.byType(Scrollable))
+              .first,
+        );
+        await tester.ensureVisible(last);
+        await tester.pumpAndSettle();
+        expect(last, findsOneWidget);
+        expect(
+          find.descendant(of: list, matching: find.text('00:10')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets(
     'statistics opens review and returns to the selected history view',
     (tester) async {
       final store = await _fixture();

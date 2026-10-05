@@ -1669,6 +1669,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get reviewClose;
+
+  /// No description provided for @reviewPeriodComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous period comparison'**
+  String get reviewPeriodComparison;
+
+  /// No description provided for @reviewComparisonPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous {count} days: {start} – {end}'**
+  String reviewComparisonPeriod(int count, String start, String end);
+
+  /// No description provided for @reviewTimeIncreased.
+  ///
+  /// In en, this message translates to:
+  /// **'Up {duration}'**
+  String reviewTimeIncreased(String duration);
+
+  /// No description provided for @reviewTimeDecreased.
+  ///
+  /// In en, this message translates to:
+  /// **'Down {duration}'**
+  String reviewTimeDecreased(String duration);
+
+  /// No description provided for @reviewTimeUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'No change'**
+  String get reviewTimeUnchanged;
+
+  /// No description provided for @reviewChangePercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Change: {percent}'**
+  String reviewChangePercent(String percent);
+
+  /// No description provided for @reviewNoPreviousStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'No study time in the previous period; percentage change is unavailable.'**
+  String get reviewNoPreviousStudy;
+
+  /// No description provided for @reviewPreviousTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous total: {duration}'**
+  String reviewPreviousTotal(String duration);
+
+  /// No description provided for @reviewPlanBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan time breakdown'**
+  String get reviewPlanBreakdown;
+
+  /// No description provided for @reviewBreakdownExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorted by actual study time. Shares include deleted plans.'**
+  String get reviewBreakdownExplanation;
+
+  /// No description provided for @reviewTimeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share: {percent}'**
+  String reviewTimeShare(String percent);
+
+  /// No description provided for @reviewAllPlanTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'View all ({count})'**
+  String reviewAllPlanTimes(int count);
+
+  /// No description provided for @reviewOnlyStudyDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Studied days only'**
+  String get reviewOnlyStudyDays;
+
+  /// No description provided for @reviewNoRangeStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'No study time recorded in this range.'**
+  String get reviewNoRangeStudy;
+
+  /// No description provided for @reviewRangeTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Range total: {duration}'**
+  String reviewRangeTotal(String duration);
 }
 
 class _AppLocalizationsDelegate

@@ -29,19 +29,25 @@ int studyHeatLevel(int seconds) => switch (seconds) {
 };
 
 class StudyRangeSummary {
-  const StudyRangeSummary({
+  StudyRangeSummary({
     required this.startDay,
     required this.endDay,
     required this.totalStudiedSeconds,
     required this.activeDays,
     required this.longestStudyDay,
-  });
+    Map<String, int> planSeconds = const {},
+    Iterable<StudyHistoryDay> studiedDays = const [],
+  }) : planSeconds = Map.unmodifiable(planSeconds),
+       studiedDays = List.unmodifiable(studiedDays);
 
   final DateTime startDay;
   final DateTime endDay;
   final int totalStudiedSeconds;
   final int activeDays;
   final StudyHistoryDay? longestStudyDay;
+  final Map<String, int> planSeconds;
+  // Only positive days, in descending date order; no zero-day expansion.
+  final List<StudyHistoryDay> studiedDays;
 
   int get dayCount => endDay.difference(startDay).inDays + 1;
   int get averageDailySeconds => totalStudiedSeconds ~/ dayCount;
@@ -55,6 +61,21 @@ class StudyRangeSummary {
     );
     return offsetStudyDay(endDay, -descendingIndex);
   }
+}
+
+class StudyPeriodComparison {
+  const StudyPeriodComparison({required this.current, required this.previous});
+
+  final StudyRangeSummary current;
+  final StudyRangeSummary previous;
+
+  int get secondsChange =>
+      current.totalStudiedSeconds - previous.totalStudiedSeconds;
+
+  // A zero baseline has no meaningful percentage change.
+  double? get relativeChange => previous.totalStudiedSeconds == 0
+      ? null
+      : secondsChange / previous.totalStudiedSeconds;
 }
 
 /// Read-only history projection. Invalid/future dates never affect review
@@ -142,11 +163,23 @@ class StudyHistoryIndex {
     var seconds = 0;
     var active = 0;
     StudyHistoryDay? best;
+    final planSeconds = <String, int>{};
+    final studiedDays = <StudyHistoryDay>[];
     for (final date in _dates) {
       if (date.isBefore(start) || date.isAfter(end)) continue;
       final total = _totals[date]!;
       seconds += total;
-      if (total > 0) active++;
+      if (total > 0) {
+        active++;
+        studiedDays.add(StudyHistoryDay(date: date, studiedSeconds: total));
+      }
+      for (final entry in _planTotals[date]!.entries) {
+        planSeconds.update(
+          entry.key,
+          (seconds) => seconds + entry.value,
+          ifAbsent: () => entry.value,
+        );
+      }
       // Dates are ascending, so equality selects the most recent best day.
       if (total > 0 && total >= (best?.studiedSeconds ?? 0)) {
         best = StudyHistoryDay(date: date, studiedSeconds: total);
@@ -158,6 +191,20 @@ class StudyHistoryIndex {
       totalStudiedSeconds: seconds,
       activeDays: active,
       longestStudyDay: best,
+      planSeconds: planSeconds,
+      studiedDays: studiedDays.reversed,
+    );
+  }
+
+  StudyPeriodComparison? comparePreviousPeriod(StudyRangeSummary current) {
+    final previousStart = offsetStudyDay(current.startDay, -current.dayCount);
+    if (previousStart.year < 1) return null;
+    return StudyPeriodComparison(
+      current: current,
+      previous: summarize(
+        startDay: previousStart,
+        endDay: offsetStudyDay(current.startDay, -1),
+      ),
     );
   }
 

@@ -8,8 +8,10 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../utils/study_duration.dart';
 import '../utils/study_history.dart';
+import '../utils/study_plan_breakdown.dart';
 import '../widgets/app_section_card.dart';
 import '../widgets/study_review_calendar.dart';
+import '../widgets/study_review_insights.dart';
 
 enum _ReviewView { calendar, range }
 
@@ -29,6 +31,7 @@ class _StudyReviewPageState extends State<StudyReviewPage>
   _ReviewRange _range = _ReviewRange.last30;
   DateTime? _month;
   DateTimeRange? _customRange;
+  bool _onlyStudyDays = false;
   final _calendarScroll = ScrollController();
   final _rangeScroll = ScrollController();
   final _pageStorage = PageStorageBucket();
@@ -179,7 +182,19 @@ class _StudyReviewPageState extends State<StudyReviewPage>
       isScrollControlled: true,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.75,
-        child: _StudyReviewDaySheet(store: widget.store, day: day),
+        child: _StudyReviewPlanSheet(store: widget.store, day: day),
+      ),
+    );
+  }
+
+  void _openPlanRange(DateTimeRange range) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.75,
+        child: _StudyReviewPlanSheet(store: widget.store, range: range),
       ),
     );
   }
@@ -311,13 +326,10 @@ class _StudyReviewPageState extends State<StudyReviewPage>
     );
   }
 
-  Widget _rangeHeader(StudyHistoryIndex history) {
+  Widget _rangeHeader(StudyHistoryIndex history, StudyRangeSummary summary) {
     final l10n = AppLocalizations.of(context)!;
     final selected = _selectedRange(history);
-    final summary = history.summarize(
-      startDay: selected.start,
-      endDay: selected.end,
-    );
+    final comparison = history.comparePreviousPeriod(summary);
     final dateFormat = DateFormat.yMMMd(l10n.localeName);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,10 +420,35 @@ class _StudyReviewPageState extends State<StudyReviewPage>
             ],
           ),
         ),
+        if (comparison != null) ...[
+          const SizedBox(height: 16),
+          StudyPeriodComparisonCard(comparison: comparison),
+        ],
+        const SizedBox(height: 16),
+        StudyPlanBreakdownCard(
+          entries: studyPlanTimes(
+            secondsByPlan: summary.planSeconds,
+            plans: widget.store.plans,
+            deletedPlansLabel: l10n.reviewDeletedPlans,
+          ),
+          totalSeconds: summary.totalStudiedSeconds,
+          onViewAll: () => _openPlanRange(selected),
+        ),
         const SizedBox(height: 24),
         Text(
           l10n.dailyStudyDuration,
           style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilterChip(
+            key: const ValueKey('review_only_study_days'),
+            label: Text(l10n.reviewOnlyStudyDays),
+            selected: _onlyStudyDays,
+            materialTapTargetSize: MaterialTapTargetSize.padded,
+            onSelected: (selected) => setState(() => _onlyStudyDays = selected),
+          ),
         ),
         const SizedBox(height: 12),
       ],
@@ -486,7 +523,7 @@ class _StudyReviewPageState extends State<StudyReviewPage>
                               const SizedBox(height: 16),
                               _view == _ReviewView.calendar
                                   ? _calendarHeader(history, month)
-                                  : _rangeHeader(history),
+                                  : _rangeHeader(history, summary),
                             ],
                           ),
                         ),
@@ -514,7 +551,9 @@ class _StudyReviewPageState extends State<StudyReviewPage>
                           ),
                           sliver: SliverList.builder(
                             itemCount: _view == _ReviewView.range
-                                ? summary.dayCount
+                                ? _onlyStudyDays
+                                      ? summary.studiedDays.length
+                                      : summary.dayCount
                                 : DateTime.utc(
                                     month.year,
                                     month.month + 1,
@@ -522,7 +561,9 @@ class _StudyReviewPageState extends State<StudyReviewPage>
                                   ).day,
                             itemBuilder: (context, index) {
                               final day = _view == _ReviewView.range
-                                  ? summary.dayAt(index)
+                                  ? _onlyStudyDays
+                                        ? summary.studiedDays[index].date
+                                        : summary.dayAt(index)
                                   : DateTime.utc(
                                       month.year,
                                       month.month,
@@ -543,6 +584,20 @@ class _StudyReviewPageState extends State<StudyReviewPage>
                                 ),
                               );
                             },
+                          ),
+                        ),
+                      if (_view == _ReviewView.range &&
+                          _onlyStudyDays &&
+                          summary.studiedDays.isEmpty)
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.pagePadding,
+                          ),
+                          sliver: SliverToBoxAdapter(
+                            child: AppSectionCard(
+                              key: const ValueKey('review_no_filtered_days'),
+                              child: Text(l10n.reviewNoRangeStudy),
+                            ),
                           ),
                         ),
                       SliverPadding(
@@ -573,17 +628,12 @@ class _StudyReviewPageState extends State<StudyReviewPage>
   }
 }
 
-class _DayPlanTime {
-  const _DayPlanTime(this.id, this.name, this.seconds);
-  final String id;
-  final String name;
-  final int seconds;
-}
-
-class _StudyReviewDaySheet extends StatelessWidget {
-  const _StudyReviewDaySheet({required this.store, required this.day});
+class _StudyReviewPlanSheet extends StatelessWidget {
+  const _StudyReviewPlanSheet({required this.store, this.day, this.range})
+    : assert((day == null) != (range == null));
   final StudyPlanStore store;
-  final DateTime day;
+  final DateTime? day;
+  final DateTimeRange? range;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -598,33 +648,28 @@ class _StudyReviewDaySheet extends StatelessWidget {
         lastDay:
             store.settings?.studyDate(store.currentTime) ?? store.currentTime,
       );
-      final names = {for (final plan in store.plans) plan.id: plan.name};
-      final entries = <_DayPlanTime>[];
-      var deletedSeconds = 0;
-      var deletedCount = 0;
-      for (final entry in history.planSecondsOn(day).entries) {
-        if (entry.value <= 0) continue;
-        final name = names[entry.key];
-        if (name == null) {
-          deletedSeconds += entry.value;
-          deletedCount++;
-        } else {
-          entries.add(_DayPlanTime(entry.key, name, entry.value));
-        }
-      }
-      if (deletedCount > 0) {
-        entries.add(
-          _DayPlanTime(
-            '',
-            l10n.reviewDeletedPlans(deletedCount),
-            deletedSeconds,
-          ),
-        );
-      }
-      entries.sort((a, b) {
-        final time = b.seconds.compareTo(a.seconds);
-        return time == 0 ? a.id.compareTo(b.id) : time;
-      });
+      final showingDay = day != null;
+      final summary = showingDay
+          ? null
+          : history.summarize(
+              startDay: range!.start.isAfter(history.lastDay)
+                  ? history.lastDay
+                  : range!.start,
+              endDay: range!.end.isAfter(history.lastDay)
+                  ? history.lastDay
+                  : range!.end,
+            );
+      final totalSeconds = showingDay
+          ? history.studiedSecondsOn(day!)
+          : summary!.totalStudiedSeconds;
+      final entries = studyPlanTimes(
+        secondsByPlan: showingDay
+            ? history.planSecondsOn(day!)
+            : summary!.planSeconds,
+        plans: store.plans,
+        deletedPlansLabel: l10n.reviewDeletedPlans,
+      );
+      final dateFormat = DateFormat.yMMMd(l10n.localeName);
       return Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.pagePadding,
@@ -639,60 +684,99 @@ class _StudyReviewDaySheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    DateFormat.yMMMMd(l10n.localeName).format(day),
-                    key: const ValueKey('review_day_title'),
+                    showingDay
+                        ? DateFormat.yMMMMd(l10n.localeName).format(day!)
+                        : l10n.reviewPlanBreakdown,
+                    key: ValueKey(
+                      showingDay
+                          ? 'review_day_title'
+                          : 'review_range_plan_title',
+                    ),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 IconButton(
-                  key: const ValueKey('review_close_day'),
+                  key: ValueKey(
+                    showingDay ? 'review_close_day' : 'review_close_plan_times',
+                  ),
                   tooltip: l10n.reviewClose,
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded),
                 ),
               ],
             ),
+            if (!showingDay) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.historyDateRange(
+                  dateFormat.format(summary!.startDay),
+                  dateFormat.format(summary.endDay),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
-              l10n.reviewDayTotal(
-                formatStudyDuration(history.studiedSecondsOn(day)),
+              showingDay
+                  ? l10n.reviewDayTotal(formatStudyDuration(totalSeconds))
+                  : l10n.reviewRangeTotal(formatStudyDuration(totalSeconds)),
+              key: ValueKey(
+                showingDay ? 'review_day_total' : 'review_range_plan_total',
               ),
-              key: const ValueKey('review_day_total'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
-                key: const ValueKey('review_day_entries'),
+                key: ValueKey(
+                  showingDay
+                      ? 'review_day_entries'
+                      : 'review_range_plan_entries',
+                ),
                 itemCount: entries.isEmpty ? 1 : entries.length,
                 itemBuilder: (context, index) => entries.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(l10n.reviewNoDayRecords),
+                        child: Text(
+                          showingDay
+                              ? l10n.reviewNoDayRecords
+                              : l10n.reviewNoRangeStudy,
+                        ),
                       )
                     : Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: AppSectionCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                entries[index].name,
-                                semanticsLabel: entries[index].name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                formatStudyDuration(entries[index].seconds),
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      fontFeatures: AppTheme.durationFeatures,
+                          child: showingDay
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      entries[index].name,
+                                      semanticsLabel: entries[index].name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
                                     ),
-                              ),
-                            ],
-                          ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      formatStudyDuration(
+                                        entries[index].seconds,
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontFeatures:
+                                                AppTheme.durationFeatures,
+                                          ),
+                                    ),
+                                  ],
+                                )
+                              : StudyPlanTimeTile(
+                                  entry: entries[index],
+                                  totalSeconds: totalSeconds,
+                                ),
                         ),
                       ),
               ),

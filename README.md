@@ -32,6 +32,8 @@ TimeManager 是一个仍在开发中的 Flutter 学习时间与计划管理 App�
 
 范围统计支持近 7 天、近 30 天、本月和自定义日期，两端日期均计入。日均时长包含没有记录的日子；最高学习日并列时显示最近一天。
 
+范围统计还可对比紧邻其前、天数相同的上一周期，查看实际学习时长的增减。上一周期没有学习时长时，不计算百分比变化。计划时间分布按时长降序展示各计划及占比，可打开完整列表；“只看学习日”会隐藏零时长日期，并保留原有统计口径。
+
 ## 下载
 
 Android APK 通过 GitHub Releases 提供：[下载最新版 Release](https://github.com/iLLyaaaaaa/timemanager/releases/latest)。

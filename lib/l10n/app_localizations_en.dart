@@ -911,4 +911,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewClose => 'Close';
+
+  @override
+  String get reviewPeriodComparison => 'Previous period comparison';
+
+  @override
+  String reviewComparisonPeriod(int count, String start, String end) {
+    return 'Previous $count days: $start – $end';
+  }
+
+  @override
+  String reviewTimeIncreased(String duration) {
+    return 'Up $duration';
+  }
+
+  @override
+  String reviewTimeDecreased(String duration) {
+    return 'Down $duration';
+  }
+
+  @override
+  String get reviewTimeUnchanged => 'No change';
+
+  @override
+  String reviewChangePercent(String percent) {
+    return 'Change: $percent';
+  }
+
+  @override
+  String get reviewNoPreviousStudy =>
+      'No study time in the previous period; percentage change is unavailable.';
+
+  @override
+  String reviewPreviousTotal(String duration) {
+    return 'Previous total: $duration';
+  }
+
+  @override
+  String get reviewPlanBreakdown => 'Plan time breakdown';
+
+  @override
+  String get reviewBreakdownExplanation =>
+      'Sorted by actual study time. Shares include deleted plans.';
+
+  @override
+  String reviewTimeShare(String percent) {
+    return 'Share: $percent';
+  }
+
+  @override
+  String reviewAllPlanTimes(int count) {
+    return 'View all ($count)';
+  }
+
+  @override
+  String get reviewOnlyStudyDays => 'Studied days only';
+
+  @override
+  String get reviewNoRangeStudy => 'No study time recorded in this range.';
+
+  @override
+  String reviewRangeTotal(String duration) {
+    return 'Range total: $duration';
+  }
 }

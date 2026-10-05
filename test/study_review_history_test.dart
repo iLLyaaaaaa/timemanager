@@ -29,6 +29,101 @@ class _Storage implements StudyPlanStorage {
 }
 
 void main() {
+  test('range plan totals and positive days are aggregated and read-only', () {
+    final history = StudyHistoryIndex(
+      lastDay: DateTime(2028, 3, 1),
+      records: [
+        _record('2028-02-28', 10),
+        _record('2028-02-28', 5, 'two'),
+        _record('2028-02-29', 20),
+        _record('2028-02-29', 0, 'zero'),
+        _record('2028-03-01', 0),
+        _record('2028-03-02', 999, 'future'),
+        _record('bad', 999, 'invalid'),
+      ],
+    );
+    final summary = history.summarize(
+      startDay: DateTime(2028, 2, 28),
+      endDay: DateTime(2028, 3, 1),
+    );
+    expect(summary.planSeconds, {'one': 30, 'two': 5, 'zero': 0});
+    expect(summary.studiedDays.map((day) => day.date), [
+      DateTime.utc(2028, 2, 29),
+      DateTime.utc(2028, 2, 28),
+    ]);
+    expect(summary.studiedDays.map((day) => day.studiedSeconds), [20, 15]);
+    expect(() => summary.planSeconds['one'] = 5, throwsUnsupportedError);
+    expect(() => summary.studiedDays.clear(), throwsUnsupportedError);
+  });
+
+  test('previous period has the same calendar length across leap day', () {
+    final history = StudyHistoryIndex(
+      lastDay: DateTime(2028, 3, 2),
+      records: [
+        _record('2028-02-27', 999),
+        _record('2028-02-28', 60),
+        _record('2028-02-29', 60),
+        _record('2028-03-01', 90),
+        _record('2028-03-02', 90),
+      ],
+    );
+    final current = history.summarize(
+      startDay: DateTime(2028, 3, 1),
+      endDay: DateTime(2028, 3, 2),
+    );
+    final comparison = history.comparePreviousPeriod(current)!;
+    expect(comparison.previous.startDay, DateTime.utc(2028, 2, 28));
+    expect(comparison.previous.endDay, DateTime.utc(2028, 2, 29));
+    expect(comparison.previous.dayCount, current.dayCount);
+    expect(comparison.previous.totalStudiedSeconds, 120);
+    expect(comparison.secondsChange, 60);
+    expect(comparison.relativeChange, 0.5);
+  });
+
+  test(
+    'comparison crosses the year and handles zero baselines and decreases',
+    () {
+      final history = StudyHistoryIndex(
+        lastDay: DateTime(2028, 1, 2),
+        records: [_record('2027-12-31', 60), _record('2028-01-01', 30)],
+      );
+      StudyPeriodComparison compare(DateTime date) =>
+          history.comparePreviousPeriod(
+            history.summarize(startDay: date, endDay: date),
+          )!;
+      final decreased = compare(DateTime(2028, 1, 1));
+      expect(decreased.previous.endDay, DateTime.utc(2027, 12, 31));
+      expect(decreased.secondsChange, -30);
+      expect(decreased.relativeChange, -0.5);
+      expect(compare(DateTime(2028, 1, 2)).relativeChange, -1);
+      final started = compare(DateTime(2027, 12, 31));
+      expect(started.secondsChange, 60);
+      expect(started.relativeChange, isNull);
+      final empty = compare(DateTime(2027, 12, 29));
+      expect(empty.secondsChange, 0);
+      expect(empty.relativeChange, isNull);
+    },
+  );
+
+  test(
+    'comparison does not construct a range before supported calendar dates',
+    () {
+      final history = StudyHistoryIndex(
+        records: [],
+        lastDay: DateTime(1, 1, 1),
+      );
+      expect(
+        history.comparePreviousPeriod(
+          history.summarize(
+            startDay: DateTime(1, 1, 1),
+            endDay: DateTime(1, 1, 1),
+          ),
+        ),
+        isNull,
+      );
+    },
+  );
+
   test('streak continues from yesterday until the current study day ends', () {
     final records = [
       _record('2026-09-30', 10),
