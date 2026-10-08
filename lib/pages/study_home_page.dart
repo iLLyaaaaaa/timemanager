@@ -8,6 +8,7 @@ import '../models/study_plan.dart';
 import '../utils/study_duration.dart';
 import '../utils/study_plan_query.dart';
 import '../widgets/study_plan_filter_bar.dart';
+import '../widgets/save_retry_banner.dart';
 import '../widgets/study_plan_card.dart';
 import '../widgets/app_section_card.dart';
 import '../theme/app_theme.dart';
@@ -39,6 +40,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
   final _pageStorage = PageStorageBucket();
   final _searchController = TextEditingController();
   StudyPlanFilter _filter = StudyPlanFilter.all;
+  bool _openingTimer = false;
   late final SettingsStore _settings = widget.settings ?? SettingsStore();
 
   @override
@@ -65,17 +67,25 @@ class _StudyHomePageState extends State<StudyHomePage> {
     );
   }
 
-  void _startStudy(StudyPlan plan) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => StudyTimerPage(
-          store: widget.store,
-          planId: plan.id,
-          settings: _settings,
-          screenState: widget.screenState,
+  Future<void> _startStudy(StudyPlan plan) async {
+    if (_openingTimer || widget.store.isReplacing) return;
+    _openingTimer = true;
+    FocusScope.of(context).unfocus();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => StudyTimerPage(
+            store: widget.store,
+            planId: plan.id,
+            settings: _settings,
+            screenState: widget.screenState,
+            autoStart: !plan.isCompletedToday,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _openingTimer = false;
+    }
   }
 
   Future<void> _editHeadline() async {
@@ -231,194 +241,241 @@ class _StudyHomePageState extends State<StudyHomePage> {
       filter: _filter,
     );
 
-    return ListView(
+    return CustomScrollView(
       key: const PageStorageKey('home_scroll'),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.pagePadding,
-        12,
-        AppTheme.pagePadding,
-        24,
-      ),
-      children: [
-        AppSectionCard(
-          highlighted: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _settings.settings.homeHeadlineCustomized
-                          ? _settings.settings.homeHeadline
-                          : AppLocalizations.of(context)!.defaultHomeHeadline,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colors.onPrimaryContainer,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.pagePadding,
+            12,
+            AppTheme.pagePadding,
+            0,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SaveRetryBanner(store: widget.store, settings: _settings),
+                AppSectionCard(
+                  highlighted: true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _settings.settings.homeHeadlineCustomized
+                                  ? _settings.settings.homeHeadline
+                                  : AppLocalizations.of(context)!
+                                        .defaultHomeHeadline,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.onPrimaryContainer,
+                                  ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: AppLocalizations.of(context)!
+                                .editHomeHeadline,
+                            onPressed: _editHeadline,
+                            icon: const Icon(Icons.edit_outlined),
+                            color: colors.onPrimaryContainer,
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.of(context)!.homeSummary(
+                          plans.length,
+                          formatStudyDuration(totalSeconds),
+                        ),
+                        style: TextStyle(color: colors.onPrimaryContainer),
+                      ),
+                      const SizedBox(height: 20),
+                      AppMetricGrid(
+                        children: [
+                          AppMetric(
+                            label: l10n.studiedTime,
+                            value: formatStudyDuration(studiedSeconds),
+                            valueKey: const ValueKey('home_studied_total'),
+                            foreground: colors.onPrimaryContainer,
+                          ),
+                          AppMetric(
+                            label: l10n.completedPlans,
+                            value: l10n.completedPlansValue(
+                              completedPlans,
+                              plans.length,
+                            ),
+                            valueKey: const ValueKey('home_completed_total'),
+                            foreground: colors.onPrimaryContainer,
+                          ),
+                        ],
+                      ),
+                      if (continuePlan != null) ...[
+                        const Divider(height: 32),
+                        Text(
+                          continuePlan.isRunning
+                              ? l10n.runningPlanHint
+                              : l10n.pickUpPlanHint,
+                          style: TextStyle(color: colors.onPrimaryContainer),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          continuePlan.name,
+                          semanticsLabel: continuePlan.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: colors.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            key: const ValueKey('home_resume_plan'),
+                            onPressed: () => _startStudy(continuePlan),
+                            icon: Icon(
+                              continuePlan.isRunning
+                                  ? Icons.timer_outlined
+                                  : Icons.play_arrow_rounded,
+                            ),
+                            label: Text(
+                              continuePlan.isRunning
+                                  ? l10n.openRunningTimer
+                                  : l10n.continueStudy,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ] else if (plans.isNotEmpty &&
+                          completedPlans == plans.length) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.allPlansCompleted,
+                          style: TextStyle(color: colors.onPrimaryContainer),
+                        ),
+                      ],
+                    ],
                   ),
-                  IconButton(
-                    tooltip: AppLocalizations.of(context)!.editHomeHeadline,
-                    onPressed: _editHeadline,
-                    icon: const Icon(Icons.edit_outlined),
-                    color: colors.onPrimaryContainer,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppLocalizations.of(
-                  context,
-                )!.homeSummary(plans.length, formatStudyDuration(totalSeconds)),
-                style: TextStyle(color: colors.onPrimaryContainer),
-              ),
-              const SizedBox(height: 20),
-              AppMetricGrid(
-                children: [
-                  AppMetric(
-                    label: l10n.studiedTime,
-                    value: formatStudyDuration(studiedSeconds),
-                    valueKey: const ValueKey('home_studied_total'),
-                    foreground: colors.onPrimaryContainer,
-                  ),
-                  AppMetric(
-                    label: l10n.completedPlans,
-                    value: l10n.completedPlansValue(
-                      completedPlans,
-                      plans.length,
-                    ),
-                    valueKey: const ValueKey('home_completed_total'),
-                    foreground: colors.onPrimaryContainer,
-                  ),
-                ],
-              ),
-              if (continuePlan != null) ...[
-                const Divider(height: 32),
-                Text(
-                  continuePlan.isRunning
-                      ? l10n.runningPlanHint
-                      : l10n.pickUpPlanHint,
-                  style: TextStyle(color: colors.onPrimaryContainer),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  continuePlan.name,
-                  semanticsLabel: continuePlan.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  children: [
+                    Text(
+                      l10n.todayPlan,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('home_add_plan'),
+                      onPressed: widget.store.hasLoadError ? null : _addPlan,
+                      icon: const Icon(Icons.add_rounded, size: 20),
+                      label: Text(l10n.addPlan),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    key: const ValueKey('home_resume_plan'),
-                    onPressed: () => _startStudy(continuePlan),
-                    icon: Icon(
-                      continuePlan.isRunning
-                          ? Icons.timer_outlined
-                          : Icons.play_arrow_rounded,
-                    ),
-                    label: Text(
-                      continuePlan.isRunning
-                          ? l10n.openRunningTimer
-                          : l10n.continueStudy,
-                      textAlign: TextAlign.center,
-                    ),
+                if (plans.isNotEmpty) ...[
+                  StudyPlanFilterBar(
+                    plans: plans,
+                    controller: _searchController,
+                    filter: _filter,
+                    onQueryChanged: (_) => setState(() {}),
+                    onFilterChanged: (filter) =>
+                        setState(() => _filter = filter),
                   ),
-                ),
-              ] else if (plans.isNotEmpty &&
-                  completedPlans == plans.length) ...[
-                const SizedBox(height: 16),
-                Text(
-                  l10n.allPlansCompleted,
-                  style: TextStyle(color: colors.onPrimaryContainer),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12,
-          children: [
-            Text(
-              l10n.todayPlan,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            TextButton.icon(
-              key: const ValueKey('home_add_plan'),
-              onPressed: widget.store.hasLoadError ? null : _addPlan,
-              icon: const Icon(Icons.add_rounded, size: 20),
-              label: Text(l10n.addPlan),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (plans.isNotEmpty) ...[
-          StudyPlanFilterBar(
-            plans: plans,
-            controller: _searchController,
-            filter: _filter,
-            onQueryChanged: (_) => setState(() {}),
-            onFilterChanged: (filter) => setState(() => _filter = filter),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (plans.isEmpty)
-          AppSectionCard(
-            child: Column(
-              children: [
-                Icon(
-                  widget.store.hasLoadError
-                      ? Icons.error_outline_rounded
-                      : Icons.auto_stories_rounded,
-                  size: 48,
-                  color: widget.store.hasLoadError
-                      ? colors.error
-                      : colors.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.store.hasLoadError
-                      ? l10n.planLoadFailed
-                      : l10n.noPlansHome,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                if (!widget.store.hasLoadError) ...[
-                  const SizedBox(height: 20),
-                  FilledButton.icon(
-                    key: const ValueKey('empty_add_plan'),
-                    onPressed: _addPlan,
-                    icon: const Icon(Icons.add_rounded),
-                    label: Text(l10n.addPlan),
-                  ),
+                  const SizedBox(height: 16),
                 ],
               ],
             ),
-          )
-        else if (visiblePlans.isEmpty)
-          StudyPlanSearchEmpty(
-            onReset: () => setState(() {
-              _searchController.clear();
-              _filter = StudyPlanFilter.all;
-            }),
-          )
-        else
-          for (final plan in visiblePlans) ...[
-            StudyPlanCard(plan: plan, onStart: () => _startStudy(plan)),
-            const SizedBox(height: AppTheme.cardSpacing),
-          ],
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.pagePadding,
+            0,
+            AppTheme.pagePadding,
+            24,
+          ),
+          sliver: plans.isEmpty
+              ? SliverToBoxAdapter(
+                  child: AppSectionCard(
+                    child: Column(
+                      children: [
+                        Icon(
+                          widget.store.hasLoadError
+                              ? Icons.error_outline_rounded
+                              : Icons.auto_stories_rounded,
+                          size: 48,
+                          color: widget.store.hasLoadError
+                              ? colors.error
+                              : colors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          widget.store.hasLoadError
+                              ? l10n.planLoadFailed
+                              : l10n.noPlansHome,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        if (!widget.store.hasLoadError) ...[
+                          const SizedBox(height: 20),
+                          FilledButton.icon(
+                            key: const ValueKey('empty_add_plan'),
+                            onPressed: _addPlan,
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(l10n.addPlan),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                )
+              : visiblePlans.isEmpty
+              ? SliverToBoxAdapter(
+                  child: StudyPlanSearchEmpty(
+                    onReset: () => setState(() {
+                      _searchController.clear();
+                      _filter = StudyPlanFilter.all;
+                    }),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final plan = visiblePlans[index];
+                      return Padding(
+                        key: ValueKey('home_plan_${plan.id}'),
+                        padding: const EdgeInsets.only(
+                          bottom: AppTheme.cardSpacing,
+                        ),
+                        child: StudyPlanCard(
+                          plan: plan,
+                          onStart: () => _startStudy(plan),
+                        ),
+                      );
+                    },
+                    childCount: visiblePlans.length,
+                    findChildIndexCallback: (key) {
+                      final index = visiblePlans.indexWhere(
+                        (plan) => key == ValueKey('home_plan_${plan.id}'),
+                      );
+                      return index < 0 ? null : index;
+                    },
+                  ),
+                ),
+        ),
       ],
     );
   }

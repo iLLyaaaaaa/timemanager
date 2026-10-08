@@ -147,7 +147,7 @@ void main() {
     await tester.pump();
     expect(store.plans.single.remainingSeconds, 120);
     expect(store.plans.single.studiedSeconds, 0);
-    expect(find.text('开始'), findsOneWidget);
+    expect(find.text('继续'), findsOneWidget);
     expect(alerts.cancelledPlans, contains(sessionId));
   });
 

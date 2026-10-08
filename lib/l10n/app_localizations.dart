@@ -662,6 +662,12 @@ abstract class AppLocalizations {
   /// **'Could not save all data. Please try again.'**
   String get dataSaveFailed;
 
+  /// No description provided for @dataCleanupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans, history and settings were cleared, but some local media or recovery copies could not be deleted. Try clearing again.'**
+  String get dataCleanupFailed;
+
   /// No description provided for @timerAlert.
   ///
   /// In en, this message translates to:
@@ -1759,6 +1765,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Range total: {duration}'**
   String reviewRangeTotal(String duration);
+
+  /// No description provided for @backupBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'A data operation is in progress. Please wait.'**
+  String get backupBusy;
+
+  /// No description provided for @backupCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation cancelled'**
+  String get backupCancelled;
+
+  /// No description provided for @backupConfirmRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm restore'**
+  String get backupConfirmRestore;
+
+  /// No description provided for @backupContinueExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue backup'**
+  String get backupContinueExport;
+
+  /// No description provided for @backupCreatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get backupCreatedAt;
+
+  /// No description provided for @backupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups include plans, study history, settings, custom images and sounds in one JSON file for moving devices or reinstalling.'**
+  String get backupDescription;
+
+  /// No description provided for @backupExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved'**
+  String get backupExported;
+
+  /// No description provided for @backupExporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing backup…'**
+  String get backupExporting;
+
+  /// No description provided for @backupHistoryRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid history range'**
+  String get backupHistoryRange;
+
+  /// No description provided for @backupInspecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking backup…'**
+  String get backupInspecting;
+
+  /// No description provided for @backupInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup is damaged or invalid. Current data was not replaced.'**
+  String get backupInvalid;
+
+  /// No description provided for @backupMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Images and sounds'**
+  String get backupMedia;
+
+  /// No description provided for @backupMediaInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'An image or sound in the backup cannot be read. Current data was not replaced.'**
+  String get backupMediaInvalid;
+
+  /// No description provided for @backupMissingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'All plans and records will be kept. Missing images or sounds will use built-in resources when restored.'**
+  String get backupMissingHint;
+
+  /// No description provided for @backupMissingSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sound'**
+  String get backupMissingSound;
+
+  /// No description provided for @backupMissingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some media files are missing'**
+  String get backupMissingTitle;
+
+  /// No description provided for @backupNoHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid history records'**
+  String get backupNoHistory;
+
+  /// No description provided for @backupNoPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'No previous copy yet. Importing a backup will keep a copy of the data it replaces.'**
+  String get backupNoPrevious;
+
+  /// No description provided for @backupOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The operation failed. Your input and original data were kept. Please retry.'**
+  String get backupOperationFailed;
+
+  /// No description provided for @backupPausedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored timers are paused. Time after the backup is not counted as study.'**
+  String get backupPausedHint;
+
+  /// No description provided for @backupPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans'**
+  String get backupPlans;
+
+  /// No description provided for @backupPreviousHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the copy from before the most recent successful replacement is kept. Clearing all data also deletes this copy.'**
+  String get backupPreviousHint;
+
+  /// No description provided for @backupPreviousUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous snapshots were unreadable. Their original contents were kept, but cannot be restored as a complete backup.'**
+  String get backupPreviousUnreadable;
+
+  /// No description provided for @backupReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete data could not be read. Resolve the loading error first. Original snapshots have been kept.'**
+  String get backupReadFailed;
+
+  /// No description provided for @backupRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Study records'**
+  String get backupRecords;
+
+  /// No description provided for @backupRecovering.
+  ///
+  /// In en, this message translates to:
+  /// **'Rolling back the unfinished restore…'**
+  String get backupRecovering;
+
+  /// No description provided for @backupRecoveryCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Original data restored. You can continue.'**
+  String get backupRecoveryCompleted;
+
+  /// No description provided for @backupRecoveryNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore is unfinished. Original data and recovery files have been kept. Retry rollback before continuing.'**
+  String get backupRecoveryNeeded;
+
+  /// No description provided for @backupRestoreConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Current plans, history and settings will be replaced. A local copy of the current data will be kept so you can go back.'**
+  String get backupRestoreConfirmMessage;
+
+  /// No description provided for @backupRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace current data?'**
+  String get backupRestoreConfirmTitle;
+
+  /// No description provided for @backupRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Data restored'**
+  String get backupRestored;
+
+  /// No description provided for @backupRestorePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore preview'**
+  String get backupRestorePreview;
+
+  /// No description provided for @backupRestoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring. Please wait…'**
+  String get backupRestoring;
+
+  /// No description provided for @backupRetryRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry rollback'**
+  String get backupRetryRecovery;
+
+  /// No description provided for @backupSaveFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore stopped because current changes could not be saved. Retry saving, or export the current data.'**
+  String get backupSaveFirst;
+
+  /// No description provided for @backupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup and restore'**
+  String get backupTitle;
+
+  /// No description provided for @backupTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup exceeds 64 MiB. Reduce custom media and try again.'**
+  String get backupTooLarge;
+
+  /// No description provided for @backupVersionUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup version is not supported. Use a compatible TimeManager version.'**
+  String get backupVersionUnsupported;
+
+  /// No description provided for @exportBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get exportBackup;
+
+  /// No description provided for @importBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore a backup'**
+  String get importBackup;
+
+  /// No description provided for @loadingDataFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load local data'**
+  String get loadingDataFailed;
+
+  /// No description provided for @loadingDataFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your original data has been kept. Retry or restore a backup.'**
+  String get loadingDataFailedHint;
+
+  /// No description provided for @loadingLocalData.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading local data…'**
+  String get loadingLocalData;
+
+  /// No description provided for @restorePreviousBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore data from before the last replacement'**
+  String get restorePreviousBackup;
+
+  /// No description provided for @retryingSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying…'**
+  String get retryingSave;
+
+  /// No description provided for @retryLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryLoading;
+
+  /// No description provided for @retrySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry saving'**
+  String get retrySave;
+
+  /// No description provided for @unsavedDataHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes have not been saved locally. Please retry.'**
+  String get unsavedDataHint;
+
+  /// No description provided for @localVersionUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This local data version is not supported. Your original data has been kept. Use a compatible TimeManager version or restore a backup.'**
+  String get localVersionUnsupported;
+
+  /// No description provided for @resumeTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get resumeTimer;
+
+  /// No description provided for @returnHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Return home'**
+  String get returnHome;
+
+  /// No description provided for @timerStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the timer. Check the remaining duration and try again.'**
+  String get timerStartFailed;
+
+  /// No description provided for @timerAdjustResumeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Timing pauses while you edit and continues when you close this panel.'**
+  String get timerAdjustResumeHint;
+
+  /// No description provided for @timerSavingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get timerSavingTime;
+
+  /// No description provided for @addStudyMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'+{minutes} min'**
+  String addStudyMinutes(int minutes);
+
+  /// No description provided for @timerAdjustmentExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The plan or learning day has changed. Close this panel and adjust the current plan again.'**
+  String get timerAdjustmentExpired;
+
+  /// No description provided for @timerUnsavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress has not been saved'**
+  String get timerUnsavedTitle;
+
+  /// No description provided for @timerUnsavedExitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Timing is paused. Your progress will stay in memory if you return home, where you can retry saving. Closing the app may lose these unsaved changes.'**
+  String get timerUnsavedExitHint;
+
+  /// No description provided for @stayOnTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay here'**
+  String get stayOnTimer;
+
+  /// No description provided for @keepChangesAndReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep changes and return'**
+  String get keepChangesAndReturn;
 }
 
 class _AppLocalizationsDelegate

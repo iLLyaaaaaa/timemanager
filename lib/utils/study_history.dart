@@ -116,6 +116,7 @@ class StudyHistoryIndex {
   late final List<DateTime> _activeDates;
 
   DateTime? get earliestDay => _dates.firstOrNull;
+  DateTime? get latestDay => _dates.lastOrNull;
   bool get hasStudyHistory => _activeDates.isNotEmpty;
   bool get hasStudiedToday => studiedSecondsOn(lastDay) > 0;
 

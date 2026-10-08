@@ -33,6 +33,17 @@ class AppSettings {
   final String? customSoundPath;
   final String? customSoundName;
 
+  DateTime studyDate(DateTime timestamp) {
+    final beforeReset =
+        timestamp.hour * 60 + timestamp.minute <
+        dailyResetHour * 60 + dailyResetMinute;
+    return DateTime(
+      timestamp.year,
+      timestamp.month,
+      timestamp.day - (beforeReset ? 1 : 0),
+    );
+  }
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     bool? completionAlertEnabled,

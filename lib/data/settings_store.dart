@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'snapshot_writer.dart';
+import 'study_snapshot.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,45 +39,63 @@ class SettingsStore extends ChangeNotifier {
 
   final AppSettingsStorage? storage;
   AppSettings _settings;
-  String? _pendingSnapshot;
-  Future<void>? _writeTask;
-  Object? _lastWriteError;
+  late final _writer = SnapshotWriter(storage?.write)
+    ..addListener(_notifyPersistence);
+  bool _hasLoadError = false;
+  bool _isReplacing = false;
+  bool _disposed = false;
 
   static Future<SettingsStore> load({
     required AppSettingsStorage storage,
   }) async {
-    final saved = await storage.read();
-    if (saved == null) return SettingsStore(storage: storage);
     try {
-      final decoded = jsonDecode(saved);
-      if (decoded is Map<String, dynamic>) {
-        final store = SettingsStore(
-          storage: storage,
-          settings: AppSettings.fromJson(decoded),
-        );
-        store._scheduleWrite();
-        return store;
-      }
-    } on FormatException {
-      // Keep defaults when a saved value is malformed.
-    } on TypeError {
-      // Keep defaults when saved fields have incompatible types.
+      final raw = await storage.read();
+      final store = SettingsStore(
+        storage: storage,
+        settings: decodeSettingsSnapshot(raw),
+      );
+      if (raw != null) store._scheduleWrite();
+      return store;
+    } catch (_) {
+      return SettingsStore(storage: storage).._hasLoadError = true;
     }
-    return SettingsStore(storage: storage);
+  }
+
+  bool get hasLoadError => _hasLoadError;
+  bool get isSaving => _writer.isSaving;
+  bool get hasSaveError => _writer.hasSaveError;
+  bool get hasUnsavedChanges => _writer.hasUnsavedChanges;
+  bool get isReplacing => _isReplacing;
+  void _notifyPersistence() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void beginReplacement() {
+    if (_isReplacing || isSaving) throw StateError('Store is busy');
+    _isReplacing = true;
+    _notifyPersistence();
+  }
+
+  void acceptRestoredSettings(AppSettings value) {
+    if (!_isReplacing) throw StateError('Replacement is not active');
+    _settings = value;
+    _hasLoadError = false;
+    _writer.acceptPersisted();
+  }
+
+  void endReplacement() {
+    _isReplacing = false;
+    _notifyPersistence();
   }
 
   AppSettings get settings => _settings;
 
   DateTime studyDate(DateTime timestamp) {
-    final resetMinutes =
-        _settings.dailyResetHour * 60 + _settings.dailyResetMinute;
-    final currentMinutes = timestamp.hour * 60 + timestamp.minute;
-    return currentMinutes < resetMinutes
-        ? DateTime(timestamp.year, timestamp.month, timestamp.day - 1)
-        : DateTime(timestamp.year, timestamp.month, timestamp.day);
+    return _settings.studyDate(timestamp);
   }
 
   void update(AppSettings value) {
+    if (_isReplacing) throw StateError('Data replacement is active');
     _settings = value;
     notifyListeners();
     _scheduleWrite();
@@ -83,30 +104,17 @@ class SettingsStore extends ChangeNotifier {
   void restoreDefaults() => update(const AppSettings());
 
   void _scheduleWrite() {
-    final target = storage;
-    if (target == null) return;
-    _pendingSnapshot = jsonEncode(_settings.toJson());
-    _writeTask ??= _drainWrites(target);
+    if (_hasLoadError || _isReplacing) return;
+    _writer.enqueue(jsonEncode(_settings.toJson()));
   }
 
-  Future<void> _drainWrites(AppSettingsStorage target) async {
-    while (_pendingSnapshot != null) {
-      final snapshot = _pendingSnapshot!;
-      _pendingSnapshot = null;
-      try {
-        await target.write(snapshot);
-        _lastWriteError = null;
-      } catch (error) {
-        _lastWriteError = error;
-      }
-    }
-    _writeTask = null;
-  }
+  Future<bool> flush() async => !_hasLoadError && await _writer.flush();
+  Future<bool> retrySave() async => !_hasLoadError && await _writer.retry();
 
-  Future<bool> flush() async {
-    while (_writeTask != null) {
-      await _writeTask;
-    }
-    return _lastWriteError == null;
+  @override
+  void dispose() {
+    _disposed = true;
+    _writer.dispose();
+    super.dispose();
   }
 }

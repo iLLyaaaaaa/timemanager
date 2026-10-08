@@ -89,11 +89,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('01:31'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
-    expect(find.text('01:31'), findsOneWidget);
-    await tester.tap(find.text('开始'));
-    await tester.pump();
+    expect(store.plans.single.isRunning, isTrue);
+    expect(find.text('01:29'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('01:30'), findsOneWidget);
+    expect(find.text('01:28'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.tap(find.text('管理计划'));
@@ -124,7 +123,7 @@ void main() {
     expect(store.plans.single.studiedSeconds, 1);
     await tester.pump(const Duration(seconds: 5));
     expect(store.plans.single.studiedSeconds, 1);
-    await tester.tap(find.text('开始'));
+    await tester.tap(find.byKey(const ValueKey('timer_main_action')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('今日计划已完成'), findsOneWidget);

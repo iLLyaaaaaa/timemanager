@@ -23,6 +23,11 @@ import 'package:hello_app/utils/study_history.dart';
 import 'package:hello_app/widgets/study_history_view.dart';
 
 import 'support/localized_app.dart';
+import 'support/backup_widgets.dart';
+import 'support/daily_study_fixtures.dart';
+
+import 'package:hello_app/pages/backup_page.dart';
+import 'package:hello_app/models/app_settings.dart';
 
 class _SettingsMemory implements AppSettingsStorage {
   String? value;
@@ -88,6 +93,7 @@ Future<void> _checkScroll(WidgetTester tester, {Finder? scrollable}) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
+    mockDailyAudio();
     if (!_previewEnabled) return;
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -134,6 +140,133 @@ void main() {
       await loader.load();
     }
   });
+
+  for (final width in [320.0, 390.0]) {
+    for (final locale in ['zh', 'en']) {
+      for (final brightness in [Brightness.light, Brightness.dark]) {
+        for (final scale in [1.0, 1.5]) {
+          testWidgets(
+            'daily timer fits $width $locale ${brightness.name} scale $scale',
+            (tester) async {
+              tester.view.physicalSize = Size(width, 844);
+              tester.view.devicePixelRatio = 1;
+              tester.platformDispatcher.textScaleFactorTestValue = scale;
+              addTearDown(() {
+                tester.view.resetPhysicalSize();
+                tester.view.resetDevicePixelRatio();
+                tester.view.resetViewInsets();
+                tester.platformDispatcher.clearTextScaleFactorTestValue();
+              });
+              final h = DailyHarness();
+              addTearDown(h.dispose);
+              final name =
+                  '${width.toInt()}_${locale}_${brightness.name}_${scale.toString().replaceAll('.', '_')}';
+              await tester.pumpWidget(
+                RepaintBoundary(
+                  key: _previewKey,
+                  child: localizedApp(
+                    locale: Locale(locale),
+                    brightness: brightness,
+                    home: Builder(
+                      builder: (context) => Scaffold(
+                        body: Center(
+                          child: FilledButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => h.timer(),
+                              ),
+                            ),
+                            child: const Text('Open timer'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              await tester.tap(find.text('Open timer'));
+              await tester.pumpAndSettle();
+              for (final key in ['timer_main_action', 'timer_adjust_time']) {
+                final rect = tester.getRect(find.byKey(ValueKey(key)));
+                expect(rect.height, greaterThanOrEqualTo(48));
+                expect(rect.width, greaterThanOrEqualTo(48));
+                expect(rect.bottom, lessThanOrEqualTo(844));
+              }
+              expect(h.plan.isRunning, isTrue);
+              expect(tester.takeException(), isNull);
+              await _capture(tester, 'daily_timer_$name');
+              final footerRect = tester.getRect(
+                find.byKey(const ValueKey('timer_main_action')),
+              );
+              await _checkScroll(tester);
+              expect(
+                tester.getRect(find.byKey(const ValueKey('timer_main_action'))),
+                footerRect,
+              );
+              await tapDaily(tester, 'timer_adjust_time');
+              for (final key in [
+                'add_time_1',
+                'add_time_5',
+                'add_time_15',
+                'cancel_adjust_time',
+                'confirm_adjust_time',
+              ]) {
+                final rect = tester.getRect(find.byKey(ValueKey(key)));
+                expect(rect.height, greaterThanOrEqualTo(48));
+                expect(rect.width, greaterThanOrEqualTo(48));
+              }
+              expect(tester.takeException(), isNull);
+              await _capture(tester, 'daily_adjust_$name');
+              final minutes = find.byKey(const ValueKey('duration_minutes'));
+              await tester.ensureVisible(minutes);
+              tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+              await tester.showKeyboard(minutes);
+              await tester.pumpAndSettle();
+              final save = find.byKey(const ValueKey('confirm_adjust_time'));
+              expect(tester.getRect(save).bottom, lessThanOrEqualTo(544));
+              expect(tester.takeException(), isNull);
+              await _capture(tester, 'daily_keyboard_$name');
+              await tester.enterText(minutes, '12');
+              await tester.tap(save);
+              await tester.pumpAndSettle();
+              expect(
+                find.byKey(const ValueKey('adjust_time_dialog')),
+                findsNothing,
+              );
+              expect(h.plan.remainingSeconds, 720);
+              expect(h.plan.isRunning, isTrue);
+              tester.view.resetViewInsets();
+              await tester.pumpAndSettle();
+              h.planStorage.failWrites = true;
+              await tester.binding.handlePopRoute();
+              await tester.pumpAndSettle();
+              for (final key in ['stay_on_timer', 'leave_unsaved_timer']) {
+                final rect = tester.getRect(find.byKey(ValueKey(key)));
+                expect(rect.height, greaterThanOrEqualTo(48));
+                expect(rect.width, greaterThanOrEqualTo(48));
+              }
+              expect(tester.takeException(), isNull);
+              await _capture(tester, 'daily_unsaved_$name');
+              await tapDaily(tester, 'stay_on_timer');
+              h.planStorage.failWrites = false;
+              await h.store.retrySave();
+              h.store.studySeconds(h.id, 720);
+              await tester.pumpAndSettle();
+              expect(
+                find.text(locale == 'zh' ? '返回首页' : 'Return home'),
+                findsOneWidget,
+              );
+              expect(tester.takeException(), isNull);
+              await _capture(tester, 'daily_completed_$name');
+              await tapDaily(tester, 'timer_main_action');
+              expect(find.byType(StudyTimerPage), findsNothing);
+              await tester.pumpWidget(const SizedBox());
+            },
+          );
+        }
+      }
+    }
+  }
 
   testWidgets('home add shortcuts preserve defaults and update overview', (
     tester,
@@ -857,6 +990,205 @@ void main() {
                 if (capture) {
                   await _capture(tester, 'review_filtered_empty_$name');
                 }
+              } finally {
+                await tester.pumpWidget(const SizedBox());
+              }
+            },
+          );
+        }
+      }
+    }
+  }
+  for (final width in [320.0, 390.0]) {
+    for (final locale in ['zh', 'en']) {
+      for (final brightness in [Brightness.light, Brightness.dark]) {
+        for (final scale in [1.0, 1.5]) {
+          testWidgets(
+            'backup fits $width $locale ${brightness.name} scale $scale',
+            (tester) async {
+              tester.view.physicalSize = Size(width, 844);
+              tester.view.devicePixelRatio = 1;
+              tester.platformDispatcher.textScaleFactorTestValue = scale;
+              addTearDown(() {
+                tester.view.resetPhysicalSize();
+                tester.view.resetDevicePixelRatio();
+                tester.platformDispatcher.clearTextScaleFactorTestValue();
+              });
+              final h = await widgetBackupHarness(tester);
+              final name =
+                  '${width.toInt()}_${locale}_${brightness.name}_${scale.toString().replaceAll('.', '_')}';
+              Future<void> visible(Finder finder) async {
+                if (finder.evaluate().isEmpty) {
+                  await tester.scrollUntilVisible(
+                    finder,
+                    300,
+                    scrollable: find.byType(Scrollable).first,
+                  );
+                }
+                await tester.ensureVisible(finder);
+                await tester.pumpAndSettle();
+              }
+
+              Future<void> tap(String key) async {
+                final finder = find.byKey(ValueKey(key));
+                await visible(finder);
+                await tester.tap(finder);
+                await tester.pump();
+              }
+
+              Future<void> top() async {
+                tester
+                    .state<ScrollableState>(find.byType(Scrollable).first)
+                    .position
+                    .jumpTo(0);
+                await tester.pumpAndSettle();
+              }
+
+              try {
+                await tester.pumpWidget(
+                  RepaintBoundary(
+                    key: _previewKey,
+                    child: localizedApp(
+                      home: BackupPage(service: h.service()),
+                      locale: Locale(locale),
+                      brightness: brightness,
+                    ),
+                  ),
+                );
+                await tester.pumpAndSettle();
+                for (final key in [
+                  'export_backup',
+                  'import_backup',
+                  'previous_backup',
+                ]) {
+                  final finder = find.byKey(ValueKey(key));
+                  await visible(finder);
+                  final size = tester.getSize(finder);
+                  expect(size.width, greaterThanOrEqualTo(48));
+                  expect(size.height, greaterThanOrEqualTo(48));
+                  final text = find
+                      .descendant(of: finder, matching: find.byType(Text))
+                      .first;
+                  expect(
+                    tester.widget<Text>(text).overflow,
+                    isNot(TextOverflow.ellipsis),
+                  );
+                  expect(
+                    tester.getRect(text).right,
+                    lessThanOrEqualTo(tester.getRect(finder).right + 1),
+                  );
+                }
+                await tap('previous_backup');
+                await waitForBackup(tester, () => backupPageIdle(tester));
+                await top();
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_empty_$name');
+                h.files.selected = widgetSampleBackup().encode();
+                await tap('import_backup');
+                await waitForBackup(tester, () => backupPageIdle(tester));
+                await visible(find.byKey(const ValueKey('backup_preview')));
+                await visible(find.byKey(const ValueKey('restore_backup')));
+                final restore = find.byKey(const ValueKey('restore_backup'));
+                expect(
+                  tester.getSize(restore).height,
+                  greaterThanOrEqualTo(48),
+                );
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_preview_$name');
+                await tap('restore_backup');
+                await tester.pumpAndSettle();
+                final confirm = find.byKey(
+                  const ValueKey('confirm_backup_restore'),
+                );
+                expect(
+                  tester.getSize(confirm).height,
+                  greaterThanOrEqualTo(48),
+                );
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_confirm_$name');
+                await tester.tap(find.text(locale == 'zh' ? '取消' : 'Cancel'));
+                await tester.pumpAndSettle();
+                h.store.addPlan(
+                  name: locale == 'zh' ? '这是一项名称很长的学习计划，用来检查缺失图片说明是否能完整阅读' : 'A long learning plan name for checking that missing image details remain readable',
+                  iconId: 'book',
+                  plannedSeconds: 300,
+                  customIconPath:
+                      '${h.directory.path}/custom_icons/missing.png',
+                );
+                await top();
+                await tap('export_backup');
+                await waitForBackup(
+                  tester,
+                  () => find.byType(AlertDialog).evaluate().isNotEmpty,
+                );
+                await tester.pumpAndSettle();
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_missing_$name');
+                await tester.tap(find.text(locale == 'zh' ? '取消' : 'Cancel'));
+                await waitForBackup(tester, () => backupPageIdle(tester));
+                await tester.pumpWidget(const SizedBox());
+                await tester.runAsync(h.store.flush);
+                h.planStorage.value = 'invalid snapshot';
+                h.settingsStorage.value = jsonEncode(
+                  AppSettings(
+                    localeCode: locale,
+                    themeMode: brightness == Brightness.dark
+                        ? ThemeMode.dark
+                        : ThemeMode.light,
+                  ).toJson(),
+                );
+                await tester.pumpWidget(
+                  RepaintBoundary(
+                    key: _previewKey,
+                    child: AppBootstrap(
+                      planStorage: h.planStorage,
+                      settingsStorage: h.settingsStorage,
+                      files: h.files,
+                      now: () => h.now,
+                      cancelNotifications: () async {},
+                    ),
+                  ),
+                );
+                await waitForBackup(
+                  tester,
+                  () => find
+                      .byKey(const ValueKey('retry_loading'))
+                      .evaluate()
+                      .isNotEmpty,
+                );
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_startup_error_$name');
+                await tester.pumpWidget(const SizedBox());
+                h.planStorage.failWrites = true;
+                h.store.addPlan(
+                  name: 'Unsaved',
+                  iconId: 'book',
+                  plannedSeconds: 300,
+                );
+                await tester.runAsync(h.store.flush);
+                await tester.pumpWidget(
+                  RepaintBoundary(
+                    key: _previewKey,
+                    child: localizedApp(
+                      home: StudyHomePage(store: h.store, settings: h.settings),
+                      locale: Locale(locale),
+                      brightness: brightness,
+                    ),
+                  ),
+                );
+                await tester.pumpAndSettle();
+                expect(
+                  find.byKey(const ValueKey('retry_save')),
+                  findsOneWidget,
+                );
+                expect(
+                  tester
+                      .getSize(find.byKey(const ValueKey('retry_save')))
+                      .height,
+                  greaterThanOrEqualTo(48),
+                );
+                expect(tester.takeException(), isNull);
+                await _capture(tester, 'backup_unsaved_$name');
               } finally {
                 await tester.pumpWidget(const SizedBox());
               }

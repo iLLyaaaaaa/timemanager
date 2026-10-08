@@ -7,9 +7,9 @@ import '../l10n/app_localizations.dart';
 import '../data/study_plan_store.dart';
 import '../data/settings_store.dart';
 import '../models/study_plan.dart';
-import '../models/app_settings.dart';
 import '../utils/study_duration.dart';
-import '../widgets/study_duration_input.dart';
+import '../widgets/study_time_adjustment_dialog.dart';
+import '../widgets/save_retry_banner.dart';
 import '../services/timer_alert_service.dart';
 import '../widgets/study_plan_icon.dart';
 import '../services/screen_state_service.dart';
@@ -26,6 +26,7 @@ class StudyTimerPage extends StatefulWidget {
     this.now,
     this.alerts,
     this.screenState,
+    this.autoStart = false,
   });
 
   final StudyPlanStore store;
@@ -34,6 +35,7 @@ class StudyTimerPage extends StatefulWidget {
   final DateTime Function()? now;
   final TimerAlertService? alerts;
   final ScreenStateService? screenState;
+  final bool autoStart;
 
   @override
   State<StudyTimerPage> createState() => _StudyTimerPageState();
@@ -44,6 +46,11 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   Timer? _timer;
   bool _isLeaving = false;
   bool _isRunning = false;
+  bool _operationBusy = false;
+  bool _isAdjusting = false;
+  bool _resumeAfterAdjustment = false;
+  DateTime? _adjustmentDay;
+  String? _resumeProgressDay;
   bool _away = false;
   bool _scheduledAlert = false;
   String? _activeSessionId;
@@ -53,7 +60,14 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   late final ScreenStateService _screenState =
       widget.screenState ?? ScreenStateService();
   bool _completionHandled = false;
+  late final _settings =
+      widget.settings ?? widget.store.settings ?? SettingsStore();
   DateTime _now() => widget.now?.call() ?? widget.store.currentTime;
+  bool get _controlsBusy =>
+      _isLeaving || _operationBusy || _isAdjusting || widget.store.isReplacing;
+  bool get _foreground =>
+      WidgetsBinding.instance.lifecycleState == null ||
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
   @override
   void initState() {
@@ -62,20 +76,33 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final plan = widget.store.planById(widget.planId);
     _isRunning = plan?.isRunning ?? false;
     _activeSessionId = plan?.sessionId;
-    if (_isRunning) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _scheduleCompletion();
-          _startTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.store.isReplacing) return;
+      widget.store.reconcileRunning(widget.planId, now: _now());
+      widget.store.refreshForToday();
+      final current = widget.store.planById(widget.planId);
+      if (current?.isRunning == true) {
+        _isRunning = true;
+        _activeSessionId = current!.sessionId;
+        _scheduleCompletion();
+        _startTimer();
+        setState(() {});
+      } else {
+        _stopSession();
+        if (widget.autoStart && current != null && !current.isCompletedToday) {
+          _start();
+        } else {
+          setState(() {});
         }
-      });
-    }
+      }
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _away = false;
+      if (!_isAdjusting) _resumeAdjustmentIfValid();
       if (_isRunning) {
         widget.store.reconcileRunning(widget.planId, now: _now());
         final plan = widget.store.planById(widget.planId);
@@ -112,18 +139,38 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     }
   }
 
-  void _start() {
-    if (_isRunning) return;
+  void _start({bool offerPermission = true}) {
+    if (_isRunning || _controlsBusy || !_foreground || !mounted) return;
+    widget.store.refreshForToday();
     final plan = widget.store.planById(widget.planId);
     if (plan == null || plan.isCompletedToday) return;
-    widget.store.beginRunning(widget.planId, now: _now());
+    final instant = _now();
+    try {
+      final seconds = plan.hasStartedToday
+          ? plan.remainingSeconds
+          : plan.plannedSeconds;
+      if (seconds <= 0) {
+        throw const FormatException('Invalid remaining duration');
+      }
+      final duration = Duration(seconds: seconds);
+      if (duration.inSeconds != seconds) {
+        throw const FormatException('Duration is too large');
+      }
+      instant.add(duration);
+      widget.store.beginRunning(widget.planId, now: instant);
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.timerStartFailed)),
+      );
+      return;
+    }
     _activeSessionId = widget.store.planById(widget.planId)?.sessionId;
     _completionHandled = false;
     _isRunning = true;
     _scheduledAlert = false;
     _scheduleCompletion();
     unawaited(widget.store.flush());
-    if ((widget.settings?.settings.timerAlertMode ?? 'sound') != 'none') {
+    if (offerPermission && _settings.settings.timerAlertMode != 'none') {
       unawaited(_offerBackgroundPermission());
     }
     _startTimer();
@@ -138,7 +185,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final generation = ++_scheduleGeneration;
     final task = _alerts.scheduleBackgroundCompletion(
       plan: plan,
-      settings: widget.settings?.settings ?? const AppSettings(),
+      settings: _settings.settings,
       l10n: AppLocalizations.of(context)!,
     );
     _scheduleTask = task;
@@ -195,7 +242,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       widget.store.reconcileRunning(widget.planId, now: _now());
       final current = widget.store.planById(widget.planId);
       if (current == null ||
-          !current.hasStartedToday ||
+          !current.isRunning ||
           current.remainingSeconds == 0) {
         unawaited(_finishSession(current));
       }
@@ -210,7 +257,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     _completionHandled = true;
     _stopSession();
     if (mounted) setState(() {});
-    final settings = widget.settings?.settings ?? const AppSettings();
+    final settings = _settings.settings;
     final scheduled = await (_scheduleTask ?? Future.value(_scheduledAlert));
     _activeSessionId = null;
     _scheduleTask = null;
@@ -236,7 +283,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     _isRunning = false;
   }
 
-  Future<void> _pause() async {
+  Future<bool> _pause({bool showFailure = true}) async {
     final sessionId =
         _activeSessionId ?? widget.store.planById(widget.planId)?.sessionId;
     widget.store.pauseRunning(widget.planId, now: _now());
@@ -250,88 +297,128 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       await _alerts.cancelBackgroundCompletion(sessionId);
     }
     final saved = await widget.store.flush();
-    if (!saved && mounted) {
+    if (!saved && mounted && showFailure) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
       );
     }
+    return saved;
+  }
+
+  Future<void> _pauseControl() async {
+    if (_controlsBusy) return;
+    setState(() => _operationBusy = true);
+    try {
+      await _pause(showFailure: false);
+    } finally {
+      if (mounted) setState(() => _operationBusy = false);
+    }
+  }
+
+  void _resumeAdjustmentIfValid() {
+    if (!_resumeAfterAdjustment ||
+        _isAdjusting ||
+        !mounted ||
+        !_foreground ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    _resumeAfterAdjustment = false;
+    widget.store.refreshForToday();
+    final plan = widget.store.planById(widget.planId);
+    if (_isLeaving ||
+        widget.store.isReplacing ||
+        _settings.studyDate(_now()) != _adjustmentDay ||
+        plan == null ||
+        !plan.hasStartedToday ||
+        plan.isCompletedToday ||
+        plan.progressDay != _resumeProgressDay) {
+      return;
+    }
+    _start(offerPermission: false);
   }
 
   Future<void> _adjustTime() async {
-    if (_isLeaving) return;
-    if (_isRunning) await _pause();
-    if (!mounted) return;
-    final plan = widget.store.planById(widget.planId);
-    if (plan == null) return;
-    final currentSeconds = plan.hasStartedToday
-        ? plan.remainingSeconds
-        : plan.plannedSeconds;
-    final formKey = GlobalKey<FormState>();
-    final durationKey = GlobalKey<StudyDurationInputState>();
-    final seconds = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.adjustTime),
-        scrollable: true,
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.of(context)!
-                    .currentRemaining(formatStudyDuration(currentSeconds)),
-              ),
-              const SizedBox(height: 16),
-              StudyDurationInput(
-                key: durationKey,
-                initialSeconds: currentSeconds,
-                label: AppLocalizations.of(context)!.newRemainingTime,
-              ),
-            ],
-          ),
+    if (_controlsBusy) return;
+    _resumeAfterAdjustment = _isRunning;
+    _adjustmentDay = _settings.studyDate(_now());
+    setState(() => _isAdjusting = true);
+    try {
+      if (_isRunning) await _pause(showFailure: false);
+      if (!mounted) return;
+      widget.store.refreshForToday();
+      final plan = widget.store.planById(widget.planId);
+      if (plan == null) return;
+      _resumeProgressDay = plan.progressDay;
+      await showDialog<bool>(
+        context: context,
+        builder: (_) => StudyTimeAdjustmentDialog(
+          initialSeconds: plan.hasStartedToday
+              ? plan.remainingSeconds
+              : plan.plannedSeconds,
+          resumeAfterwards: _resumeAfterAdjustment,
+          onApply: (seconds) async {
+            if (!mounted) return null;
+            widget.store.refreshForToday();
+            if (widget.store.planById(widget.planId) == null ||
+                widget.store.isReplacing ||
+                _settings.studyDate(_now()) != _adjustmentDay) {
+              _resumeAfterAdjustment = false;
+              return AppLocalizations.of(context)!.timerAdjustmentExpired;
+            }
+            widget.store.adjustRemainingSeconds(widget.planId, seconds);
+            await widget.store.flush();
+            return null;
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.of(dialogContext)
-                    .pop(durationKey.currentState!.totalSeconds);
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.save),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || seconds == null) return;
-    widget.store.adjustRemainingSeconds(widget.planId, seconds);
-    final saved = await widget.store.flush();
-    if (!saved && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isAdjusting = false);
+        _resumeAdjustmentIfValid();
+      }
     }
   }
 
   Future<void> _leavePage() async {
-    if (_isLeaving) return;
-    _isLeaving = true;
-    if (_isRunning) await _pause();
-    final saved = await widget.store.flush();
+    if (_controlsBusy) return;
+    _resumeAfterAdjustment = false;
+    setState(() => _isLeaving = true);
+    final saved = _isRunning
+        ? await _pause(showFailure: false)
+        : await widget.store.retrySave();
     if (!mounted) return;
     if (!saved) {
-      _isLeaving = false;
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.timeSaveFailed)),
+      final l10n = AppLocalizations.of(context)!;
+      final leave = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('timer_unsaved_exit'),
+          title: Text(l10n.timerUnsavedTitle),
+          content: SingleChildScrollView(
+            child: Text(l10n.timerUnsavedExitHint),
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('stay_on_timer'),
+              style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.stayOnTimer),
+            ),
+            FilledButton(
+              key: const ValueKey('leave_unsaved_timer'),
+              style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.keepChangesAndReturn),
+            ),
+          ],
+        ),
       );
-      return;
+      if (!mounted) return;
+      if (leave != true) {
+        setState(() => _isLeaving = false);
+        return;
+      }
     }
     Navigator.of(context).pop();
   }
@@ -344,6 +431,9 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     // persisted target end time must survive that widget disposal.
     _stopSession();
     if (widget.alerts == null) unawaited(_alerts.dispose());
+    if (widget.settings == null && widget.store.settings == null) {
+      _settings.dispose();
+    }
     widget.store.flush();
     super.dispose();
   }
@@ -362,6 +452,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
           if (plan == null) {
             return Scaffold(
               appBar: AppBar(
+                leading: _backButton(context),
                 title: Text(AppLocalizations.of(context)!.studyTimer),
               ),
               body: Center(
@@ -372,6 +463,16 @@ class _StudyTimerPageState extends State<StudyTimerPage>
           return _buildTimer(context, plan);
         },
       ),
+    );
+  }
+
+  Widget? _backButton(BuildContext context) {
+    if (!Navigator.of(context).canPop()) return null;
+    return IconButton(
+      key: const ValueKey('timer_back'),
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      onPressed: _controlsBusy ? null : _leavePage,
+      icon: const BackButtonIcon(),
     );
   }
 
@@ -394,6 +495,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
 
     return Scaffold(
       appBar: AppBar(
+        leading: _backButton(context),
         title: Text(AppLocalizations.of(context)!.studyTimer),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -407,6 +509,11 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             32,
           ),
           children: [
+            SaveRetryBanner(
+              store: widget.store,
+              settings: _settings,
+              enabled: !_controlsBusy,
+            ),
             Row(
               children: [
                 StudyPlanIcon(
@@ -419,6 +526,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
                 Expanded(
                   child: Text(
                     plan.name,
+                    semanticsLabel: plan.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium
@@ -462,36 +570,6 @@ class _StudyTimerPageState extends State<StudyTimerPage>
               completed: completed,
             ),
             const SizedBox(height: 28),
-            if (!completed)
-              SizedBox(
-                height: 60,
-                child: FilledButton.icon(
-                  onPressed: _isLeaving
-                      ? null
-                      : _isRunning
-                      ? _pause
-                      : _start,
-                  icon: Icon(
-                    _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  ),
-                  label: Text(
-                    _isRunning
-                        ? AppLocalizations.of(context)!.pause
-                        : AppLocalizations.of(context)!.start,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _isLeaving ? null : _adjustTime,
-              icon: const Icon(Icons.edit_outlined),
-              label: Text(AppLocalizations.of(context)!.adjustTime),
-            ),
-            const SizedBox(height: 24),
             AppSectionCard(
               child: AppMetricGrid(
                 children: [
@@ -507,6 +585,74 @@ class _StudyTimerPageState extends State<StudyTimerPage>
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Material(
+        color: colors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.pagePadding,
+              12,
+              AppTheme.pagePadding,
+              16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey('timer_main_action'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 60),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  onPressed: _controlsBusy
+                      ? null
+                      : completed
+                      ? _leavePage
+                      : _isRunning
+                      ? _pauseControl
+                      : _start,
+                  icon: Icon(
+                    completed
+                        ? Icons.home_outlined
+                        : _isRunning
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                  label: Text(
+                    completed
+                        ? l10n.returnHome
+                        : _isRunning
+                        ? l10n.pause
+                        : plan.hasStartedToday
+                        ? l10n.resumeTimer
+                        : l10n.start,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey('timer_adjust_time'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                  ),
+                  onPressed: _controlsBusy ? null : _adjustTime,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(l10n.adjustTime, textAlign: TextAlign.center),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

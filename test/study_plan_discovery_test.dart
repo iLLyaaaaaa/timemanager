@@ -13,8 +13,8 @@ import 'package:hello_app/widgets/study_plan_card.dart';
 
 import 'support/localized_app.dart';
 
-StudyPlanStore _plans() {
-  final store = StudyPlanStore(now: () => DateTime(2026, 10, 4, 12));
+StudyPlanStore _plans({DateTime Function()? now}) {
+  final store = StudyPlanStore(now: now ?? () => DateTime(2026, 10, 4, 12));
   final math = store.addPlan(
     name: 'Advanced Math',
     iconId: 'calculate',
@@ -169,10 +169,11 @@ void main() {
     },
   );
 
-  testWidgets('home shortcut opens the paused plan without starting it', (
+  testWidgets('home shortcut resumes the paused plan immediately', (
     tester,
   ) async {
-    final store = _plans();
+    var now = DateTime(2026, 10, 4, 12);
+    final store = _plans(now: () => now);
     addTearDown(store.dispose);
     await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await _tapVisible(tester, find.byKey(const ValueKey('home_resume_plan')));
@@ -180,10 +181,11 @@ void main() {
       tester.widget<StudyTimerPage>(find.byType(StudyTimerPage)).planId,
       store.plans.first.id,
     );
-    expect(store.plans.first.isRunning, isFalse);
+    expect(store.plans.first.isRunning, isTrue);
     expect(store.plans.first.remainingSeconds, 90);
+    now = now.add(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
-    expect(store.plans.first.studiedSeconds, 30);
+    expect(store.plans.first.studiedSeconds, 32);
     await tester.pumpWidget(const SizedBox());
   });
 

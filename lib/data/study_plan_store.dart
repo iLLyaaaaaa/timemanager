@@ -1,4 +1,5 @@
-import 'dart:convert';
+import 'snapshot_writer.dart';
+import 'study_snapshot.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -19,9 +20,9 @@ class StudyPlanStore extends ChangeNotifier {
   final List<StudyPlan> _plans = [];
   final List<StudyRecord> _records = [];
   int _nextId = 1;
-  String? _pendingSnapshot;
-  Future<void>? _writeTask;
-  Object? _lastWriteError;
+  late final _writer = SnapshotWriter(storage?.write)
+    ..addListener(_notifyPersistence);
+  bool _isReplacing = false;
   bool _hasLoadError = false;
   bool _disposed = false;
 
@@ -35,60 +36,82 @@ class StudyPlanStore extends ChangeNotifier {
       settings: settings,
       now: now,
     );
-    final saved = await storage.read();
-    var needsWrite = false;
-    if (saved != null) {
-      try {
-        final decoded = jsonDecode(saved);
-        if (decoded is! Map<String, dynamic> ||
-            (decoded['version'] != 1 &&
-                decoded['version'] != 2 &&
-                decoded['version'] != 3 &&
-                decoded['version'] != 4 &&
-                decoded['version'] != 5) ||
-            decoded['plans'] is! List) {
-          throw const FormatException('Invalid saved plans');
-        }
-        final loaded = (decoded['plans'] as List)
-            .map(
-              (item) =>
-                  StudyPlan.fromJson(Map<String, dynamic>.from(item as Map)),
-            )
-            .toList();
-        final loadedRecords = decoded['version'] != 1
-            ? (decoded['records'] as List)
-                  .map(
-                    (item) => StudyRecord.fromJson(
-                      Map<String, dynamic>.from(item as Map),
-                    ),
-                  )
-                  .toList()
-            : <StudyRecord>[];
-        store._plans
-          ..clear()
-          ..addAll(loaded);
-        store._records.addAll(loadedRecords);
-        needsWrite = decoded['version'] != 5;
-        final nextId = decoded['nextId'];
-        if (nextId is int && nextId > 0) store._nextId = nextId;
-        while (store._plans.any(
-          (plan) => plan.id == 'custom_${store._nextId}',
-        )) {
-          store._nextId++;
-        }
-      } on FormatException {
-        store._hasLoadError = true;
-      } on TypeError {
-        store._hasLoadError = true;
-      }
+    try {
+      final snapshot = StudyPlanSnapshot.decode(await storage.read());
+      store._install(snapshot);
+      store._initialize(snapshot.sourceVersion != 5);
+    } catch (_) {
+      store._hasLoadError = true;
     }
-    for (final plan in List<StudyPlan>.of(store._plans)) {
-      if (plan.isRunning) store.reconcileRunning(plan.id);
-      if (store._syncRecord(store.planById(plan.id) ?? plan)) needsWrite = true;
-    }
-    store.refreshForToday();
-    if (needsWrite) store._scheduleWrite();
     return store;
+  }
+
+  static StudyPlanStore fromSnapshot(
+    StudyPlanSnapshot snapshot, {
+    StudyPlanStorage? storage,
+    SettingsStore? settings,
+    DateTime Function()? now,
+  }) {
+    final store = StudyPlanStore(
+      storage: storage,
+      settings: settings,
+      now: now,
+    );
+    store._install(snapshot);
+    store._initialize(snapshot.sourceVersion != 5);
+    return store;
+  }
+
+  void _install(StudyPlanSnapshot snapshot) {
+    _plans
+      ..clear()
+      ..addAll(snapshot.plans);
+    _records
+      ..clear()
+      ..addAll(snapshot.records);
+    _nextId = snapshot.nextId;
+  }
+
+  void _initialize(bool needsWrite) {
+    for (final plan in List<StudyPlan>.of(_plans)) {
+      if (plan.isRunning) reconcileRunning(plan.id);
+      if (_syncRecord(planById(plan.id) ?? plan)) needsWrite = true;
+    }
+    refreshForToday();
+    if (needsWrite) _scheduleWrite();
+  }
+
+  StudyPlanSnapshot get snapshot =>
+      StudyPlanSnapshot(plans: _plans, records: _records, nextId: _nextId);
+  bool get isSaving => _writer.isSaving;
+  bool get hasSaveError => _writer.hasSaveError;
+  bool get hasUnsavedChanges => _writer.hasUnsavedChanges;
+  bool get isReplacing => _isReplacing;
+
+  void _notifyPersistence() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void beginReplacement() {
+    if (_isReplacing || isSaving) throw StateError('Store is busy');
+    _isReplacing = true;
+    _notifyPersistence();
+  }
+
+  void acceptRestoredSnapshot(StudyPlanSnapshot value) {
+    if (!_isReplacing) throw StateError('Replacement is not active');
+    _install(value);
+    _hasLoadError = false;
+    _writer.acceptPersisted();
+  }
+
+  void endReplacement() {
+    _isReplacing = false;
+    _notifyPersistence();
+  }
+
+  void _checkReplacement() {
+    if (_isReplacing) throw StateError('Data replacement is active');
   }
 
   List<StudyPlan> get plans => List.unmodifiable(_plans);
@@ -113,6 +136,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void refreshForToday() {
+    if (_isReplacing) return;
     final today = _today;
     var changed = false;
     for (var index = 0; index < _plans.length; index++) {
@@ -139,6 +163,7 @@ class StudyPlanStore extends ChangeNotifier {
     required int plannedSeconds,
     String? customIconPath,
   }) {
+    _checkReplacement();
     refreshForToday();
     final plan = StudyPlan(
       id: 'custom_${_nextId++}',
@@ -153,6 +178,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void updatePlan(StudyPlan updated) {
+    _checkReplacement();
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == updated.id);
     if (index == -1) return;
@@ -196,6 +222,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void adjustRemainingSeconds(String id, int seconds) {
+    _checkReplacement();
     if (seconds <= 0) {
       throw ArgumentError.value(seconds, 'seconds');
     }
@@ -220,12 +247,14 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void deletePlans(Set<String> ids) {
+    _checkReplacement();
     final oldLength = _plans.length;
     _plans.removeWhere((plan) => ids.contains(plan.id));
     if (_plans.length != oldLength) _changed();
   }
 
   void restorePlan(StudyPlan plan, {int? index}) {
+    _checkReplacement();
     if (_plans.any((item) => item.id == plan.id)) return;
     final position = index == null
         ? _plans.length
@@ -236,6 +265,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void clearLearningData() {
+    _checkReplacement();
     for (var index = 0; index < _plans.length; index++) {
       _plans[index] = _plans[index].withProgress(
         day: null,
@@ -251,6 +281,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void clearAllData() {
+    _checkReplacement();
     _plans.clear();
     _records.clear();
     _nextId = 1;
@@ -258,6 +289,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void startOrResume(String id) {
+    _checkReplacement();
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == id);
     if (index == -1) return;
@@ -275,6 +307,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void beginRunning(String id, {DateTime? now}) {
+    _checkReplacement();
     startOrResume(id);
     final index = _plans.indexWhere((plan) => plan.id == id);
     if (index == -1 ||
@@ -291,6 +324,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void reconcileRunning(String id, {DateTime? now}) {
+    if (_isReplacing) return;
     final index = _plans.indexWhere((plan) => plan.id == id);
     if (index == -1) return;
     final plan = _plans[index];
@@ -315,6 +349,7 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void pauseRunning(String id, {DateTime? now}) {
+    _checkReplacement();
     reconcileRunning(id, now: now);
     final index = _plans.indexWhere((plan) => plan.id == id);
     if (index == -1 || !_plans[index].isRunning) return;
@@ -333,6 +368,7 @@ class StudyPlanStore extends ChangeNotifier {
   void studyOneSecond(String id) => studySeconds(id, 1);
 
   void studySeconds(String id, int seconds) {
+    _checkReplacement();
     if (seconds <= 0) return;
     refreshForToday();
     final index = _plans.indexWhere((plan) => plan.id == id);
@@ -383,41 +419,16 @@ class StudyPlanStore extends ChangeNotifier {
   }
 
   void _scheduleWrite() {
-    final target = storage;
-    if (target == null || _hasLoadError) return;
-    _pendingSnapshot = jsonEncode({
-      'version': 5,
-      'nextId': _nextId,
-      'plans': _plans.map((plan) => plan.toJson()).toList(),
-      'records': _records.map((record) => record.toJson()).toList(),
-    });
-    _writeTask ??= _drainWrites(target);
+    if (_hasLoadError || _isReplacing) return;
+    _writer.enqueue(snapshot.encode());
   }
 
-  Future<void> _drainWrites(StudyPlanStorage storage) async {
-    while (_pendingSnapshot != null) {
-      final snapshot = _pendingSnapshot!;
-      _pendingSnapshot = null;
-      try {
-        await storage.write(snapshot);
-        _lastWriteError = null;
-      } catch (error) {
-        _lastWriteError = error;
-      }
-    }
-    _writeTask = null;
-  }
-
-  Future<bool> flush() async {
-    while (_writeTask != null) {
-      await _writeTask;
-    }
-    return _lastWriteError == null;
-  }
-
+  Future<bool> flush() async => !_hasLoadError && await _writer.flush();
+  Future<bool> retrySave() async => !_hasLoadError && await _writer.retry();
   @override
   void dispose() {
     _disposed = true;
+    _writer.dispose();
     settings?.removeListener(refreshForToday);
     super.dispose();
   }

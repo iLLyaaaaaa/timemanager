@@ -30,6 +30,25 @@ class StudyDurationInputState extends State<StudyDurationInput> {
   final _hoursFocus = FocusNode();
   final _minutesFocus = FocusNode();
   final _secondsFocus = FocusNode();
+  final _fieldKey = GlobalKey<FormFieldState<int>>();
+
+  void setTotalSeconds(int seconds) {
+    if (seconds <= 0 || seconds > 0x7fffffffffffffff) {
+      throw ArgumentError.value(seconds, 'seconds');
+    }
+    if (!widget.enabled) return;
+    final values = [seconds ~/ 3600, (seconds % 3600) ~/ 60, seconds % 60];
+    final controllers = [_hours, _minutes, _seconds];
+    for (var index = 0; index < controllers.length; index++) {
+      final text = values[index].toString();
+      controllers[index].value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+    _fieldKey.currentState?.didChange(seconds);
+    widget.onChanged?.call(seconds);
+  }
 
   void focusFirstPart() => _hoursFocus.requestFocus();
 
@@ -120,6 +139,7 @@ class StudyDurationInputState extends State<StudyDurationInput> {
       _ => null,
     };
     return FormField<int>(
+      key: _fieldKey,
       initialValue: widget.initialSeconds,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       validator: (_) => localizedError(),

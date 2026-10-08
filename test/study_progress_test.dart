@@ -317,7 +317,7 @@ void main() {
     expect(store.plans.single.studiedSeconds, 23);
     await tester.tap(find.text('暂停'));
     await tester.pump();
-    expect(find.text('开始'), findsOneWidget);
+    expect(find.text('继续'), findsOneWidget);
   });
 
   testWidgets('each plan keeps its own background setting after reload', (
@@ -459,9 +459,12 @@ void main() {
     await tester.tap(startButton);
     await tester.pumpAndSettle();
     expect(find.text('01:30'), findsOneWidget);
+    await tester.tap(find.text('暂停'));
+    await tester.pump();
     await tester.pump(const Duration(seconds: 5));
-    expect(store.plans.single.hasStartedToday, isFalse);
-    await tester.tap(find.text('开始'));
+    expect(store.plans.single.studiedSeconds, 0);
+    expect(store.plans.single.isRunning, isFalse);
+    await tester.tap(find.text('继续'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(store.plans.single.remainingSeconds, 88);
@@ -477,7 +480,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
-    expect(find.text('开始'), findsOneWidget);
+    expect(find.text('继续'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -515,7 +518,9 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('调整时间'));
       await tester.pumpAndSettle();
-      expect(find.text('开始'), findsOneWidget);
+      expect(store.plans.single.isRunning, isFalse);
+      await tester.pump(const Duration(seconds: 5));
+      expect(store.plans.single.studiedSeconds, 3);
       await tester.enterText(
         find.byKey(const ValueKey('duration_minutes')),
         '2',
@@ -529,9 +534,11 @@ void main() {
       expect(store.plans.single.plannedSeconds, 60);
       expect(store.plans.single.remainingSeconds, 120);
       expect(store.plans.single.studiedSeconds, 3);
+      expect(store.plans.single.isRunning, isTrue);
       await tester.pump(const Duration(seconds: 5));
-      expect(store.plans.single.studiedSeconds, 3);
-      expect(find.text('02:00'), findsOneWidget);
+      expect(store.plans.single.studiedSeconds, 8);
+      expect(find.text('01:55'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     },
   );
 

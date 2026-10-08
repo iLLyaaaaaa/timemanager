@@ -292,6 +292,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dataSaveFailed => '数据暂未全部写入本地，请稍后重试';
 
   @override
+  String get dataCleanupFailed => '计划、历史和设置已清空，但部分本地媒体或恢复副本未能删除，请重试清空。';
+
+  @override
   String get timerAlert => '倒计时提醒';
 
   @override
@@ -936,4 +939,190 @@ class AppLocalizationsZh extends AppLocalizations {
   String reviewRangeTotal(String duration) {
     return '范围累计学习：$duration';
   }
+
+  @override
+  String get backupBusy => '数据操作正在进行，请稍候。';
+
+  @override
+  String get backupCancelled => '操作已取消';
+
+  @override
+  String get backupConfirmRestore => '确认恢复';
+
+  @override
+  String get backupContinueExport => '继续备份';
+
+  @override
+  String get backupCreatedAt => '备份时间';
+
+  @override
+  String get backupDescription =>
+      '备份包含计划、学习记录、设置、自定义图片和铃声。保存为一个 JSON 文件，可用于换机或重装后恢复。';
+
+  @override
+  String get backupExported => '备份已保存';
+
+  @override
+  String get backupExporting => '正在生成备份…';
+
+  @override
+  String get backupHistoryRange => '有效历史范围';
+
+  @override
+  String get backupInspecting => '正在校验备份…';
+
+  @override
+  String get backupInvalid => '备份文件损坏或内容无效，当前数据未被替换。';
+
+  @override
+  String get backupMedia => '图片与铃声';
+
+  @override
+  String get backupMediaInvalid => '备份中的图片或铃声无法读取，当前数据未被替换。';
+
+  @override
+  String get backupMissingHint => '继续后保留全部计划和记录；缺失的图片或铃声恢复时使用内置资源。';
+
+  @override
+  String get backupMissingSound => '自定义铃声';
+
+  @override
+  String get backupMissingTitle => '部分媒体文件缺失';
+
+  @override
+  String get backupNoHistory => '暂无有效历史记录';
+
+  @override
+  String get backupNoPrevious => '还没有恢复前副本。成功导入备份后，会保留替换前的数据。';
+
+  @override
+  String get backupOperationFailed => '操作失败，输入和原有数据已保留，请重试。';
+
+  @override
+  String get backupPausedHint => '恢复后计时处于暂停状态，不补算备份之后的学习时间。';
+
+  @override
+  String get backupPlans => '计划';
+
+  @override
+  String get backupPreviousHint => '仅保留最近一次成功替换前的副本。清空全部数据会同时删除该副本。';
+
+  @override
+  String get backupPreviousUnreadable => '上次原始快照读取异常，已保留原始内容，但无法作为完整备份恢复。';
+
+  @override
+  String get backupReadFailed => '无法读取完整数据，请先解决加载错误。原始快照已保留。';
+
+  @override
+  String get backupRecords => '学习记录';
+
+  @override
+  String get backupRecovering => '正在回滚未完成的恢复…';
+
+  @override
+  String get backupRecoveryCompleted => '原数据已恢复，可以继续操作';
+
+  @override
+  String get backupRecoveryNeeded => '恢复尚未完成，原数据和恢复文件已保留。请重试回滚后继续操作。';
+
+  @override
+  String get backupRestoreConfirmMessage =>
+      '当前计划、历史和设置将被替换。恢复前的数据会保留为本地副本，之后可以回退。';
+
+  @override
+  String get backupRestoreConfirmTitle => '替换当前数据？';
+
+  @override
+  String get backupRestored => '数据已恢复';
+
+  @override
+  String get backupRestorePreview => '恢复预览';
+
+  @override
+  String get backupRestoring => '正在恢复，请稍候…';
+
+  @override
+  String get backupRetryRecovery => '重试回滚';
+
+  @override
+  String get backupSaveFirst => '当前修改尚未保存，已停止恢复。请先重试保存；也可以导出当前数据。';
+
+  @override
+  String get backupTitle => '备份与恢复';
+
+  @override
+  String get backupTooLarge => '备份超过 64 MiB 上限，请减少自定义媒体后重试。';
+
+  @override
+  String get backupVersionUnsupported => '暂不支持此备份版本，请使用兼容版本的 TimeManager。';
+
+  @override
+  String get exportBackup => '导出备份';
+
+  @override
+  String get importBackup => '从备份恢复';
+
+  @override
+  String get loadingDataFailed => '无法读取本地数据';
+
+  @override
+  String get loadingDataFailedHint => '原有数据已保留。请重试，或从备份恢复。';
+
+  @override
+  String get loadingLocalData => '正在加载本地数据…';
+
+  @override
+  String get restorePreviousBackup => '恢复上次替换前的数据';
+
+  @override
+  String get retryingSave => '正在重试保存…';
+
+  @override
+  String get retryLoading => '重试';
+
+  @override
+  String get retrySave => '重试保存';
+
+  @override
+  String get unsavedDataHint => '修改尚未写入本地，请重试保存。';
+
+  @override
+  String get localVersionUnsupported =>
+      '当前应用不支持这份本地数据的版本。原始内容已保留，请使用兼容版本或从备份恢复。';
+
+  @override
+  String get resumeTimer => '继续';
+
+  @override
+  String get returnHome => '返回首页';
+
+  @override
+  String get timerStartFailed => '暂时无法开始计时，请检查剩余时长后重试。';
+
+  @override
+  String get timerAdjustResumeHint => '调整期间暂停，关闭面板后继续计时。';
+
+  @override
+  String get timerSavingTime => '正在保存…';
+
+  @override
+  String addStudyMinutes(int minutes) {
+    return '+$minutes 分钟';
+  }
+
+  @override
+  String get timerAdjustmentExpired => '计划或学习日期已变化，请关闭面板后重新调整当前计划。';
+
+  @override
+  String get timerUnsavedTitle => '学习进度尚未保存';
+
+  @override
+  String get timerUnsavedExitHint =>
+      '计时已暂停。返回首页后会保留内存中的进度，你可以在那里重试保存。关闭应用可能丢失尚未保存的修改。';
+
+  @override
+  String get stayOnTimer => '留在计时页';
+
+  @override
+  String get keepChangesAndReturn => '保留修改返回';
 }

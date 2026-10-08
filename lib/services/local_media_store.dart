@@ -8,6 +8,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'backup_file_access.dart';
+
 class SavedLocalMedia {
   const SavedLocalMedia(this.path, this.name);
   final String path;
@@ -189,10 +191,12 @@ class LocalMediaStore {
     if (filePath == null) return;
     final directory = await _directory(kind);
     if (!p.isWithin(directory.path, filePath)) return;
+    if (await BackupFileAccess().isProtectedMedia(filePath)) return;
     await _deleteIfExists(filePath);
   }
 
   Future<void> clearAll() async {
+    await BackupFileAccess().clearRecoveryCopies();
     for (final kind in ['custom_icons', 'custom_sounds']) {
       final directory = await _directory(kind);
       if (await directory.exists()) await directory.delete(recursive: true);

@@ -11,6 +11,9 @@ import '../widgets/study_duration_input.dart';
 import '../services/timer_alert_service.dart';
 import '../services/local_media_store.dart';
 import 'sound_trim_page.dart';
+import 'backup_page.dart';
+import '../services/study_backup_service.dart';
+import '../widgets/save_retry_banner.dart';
 import '../widgets/app_section_card.dart';
 import '../theme/app_theme.dart';
 
@@ -20,11 +23,15 @@ class SettingsPage extends StatefulWidget {
     required this.settings,
     required this.plans,
     this.alerts,
+    this.backups,
+    this.media,
   });
 
   final SettingsStore settings;
   final StudyPlanStore plans;
   final TimerAlertService? alerts;
+  final StudyBackupService? backups;
+  final LocalMediaStore? media;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -34,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
   SettingsStore get settings => widget.settings;
   StudyPlanStore get plans => widget.plans;
   late final TimerAlertService _alerts = widget.alerts ?? TimerAlertService();
-  final _media = LocalMediaStore();
+  late final _media = widget.media ?? LocalMediaStore();
   bool? _notificationsAllowed;
   bool? _exactAlarmsAllowed;
 
@@ -556,11 +563,23 @@ class _SettingsPageState extends State<SettingsPage> {
     unawaited(_alerts.cancelAllCompletions());
     settings.restoreDefaults();
     final saved = await Future.wait([plans.flush(), settings.flush()]);
-    if (!saved.contains(false)) await _media.clearAll();
     if (saved.contains(false) && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.dataSaveFailed)),
       );
+    }
+    if (!saved.contains(false)) {
+      try {
+        await _media.clearAll();
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.dataCleanupFailed),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -569,6 +588,23 @@ class _SettingsPageState extends State<SettingsPage> {
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  void _openBackup(BackupAction action) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BackupPage(
+          service:
+              widget.backups ??
+              StudyBackupService.forStores(
+                plans,
+                settings,
+                cancelNotifications: _alerts.cancelAllCompletions,
+              ),
+          initialAction: action,
+        ),
+      ),
     );
   }
 
@@ -592,6 +628,7 @@ class _SettingsPageState extends State<SettingsPage> {
         24,
       ),
       children: [
+        SaveRetryBanner(store: plans, settings: settings),
         _section(context, l10n.appearance, [
           ListTile(
             leading: const _SettingIcon(Icons.palette_outlined),
@@ -696,6 +733,24 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ]),
         _section(context, l10n.dataManagement, [
+          ListTile(
+            key: const ValueKey('settings_export_backup'),
+            leading: const _SettingIcon(Icons.upload_file_outlined),
+            title: Text(l10n.exportBackup),
+            onTap: () => _openBackup(BackupAction.exportData),
+          ),
+          ListTile(
+            key: const ValueKey('settings_import_backup'),
+            leading: const _SettingIcon(Icons.download_outlined),
+            title: Text(l10n.importBackup),
+            onTap: () => _openBackup(BackupAction.importData),
+          ),
+          ListTile(
+            key: const ValueKey('settings_previous_backup'),
+            leading: const _SettingIcon(Icons.restore_rounded),
+            title: Text(l10n.restorePreviousBackup),
+            onTap: () => _openBackup(BackupAction.previous),
+          ),
           ListTile(
             leading: const _SettingIcon(Icons.restore_rounded),
             title: Text(l10n.restoreDefaults),

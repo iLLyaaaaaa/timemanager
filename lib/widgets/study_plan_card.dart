@@ -76,6 +76,8 @@ class StudyPlanCard extends StatelessWidget {
                     child: Text(
                       plan.isCompletedToday
                           ? l10n.viewProgress
+                          : plan.isRunning
+                          ? l10n.openRunningTimer
                           : plan.hasStartedToday
                           ? l10n.continueStudy
                           : l10n.startStudy,

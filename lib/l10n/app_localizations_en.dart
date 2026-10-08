@@ -302,6 +302,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dataSaveFailed => 'Could not save all data. Please try again.';
 
   @override
+  String get dataCleanupFailed =>
+      'Plans, history and settings were cleared, but some local media or recovery copies could not be deleted. Try clearing again.';
+
+  @override
   String get timerAlert => 'Timer Alert';
 
   @override
@@ -974,4 +978,210 @@ class AppLocalizationsEn extends AppLocalizations {
   String reviewRangeTotal(String duration) {
     return 'Range total: $duration';
   }
+
+  @override
+  String get backupBusy => 'A data operation is in progress. Please wait.';
+
+  @override
+  String get backupCancelled => 'Operation cancelled';
+
+  @override
+  String get backupConfirmRestore => 'Confirm restore';
+
+  @override
+  String get backupContinueExport => 'Continue backup';
+
+  @override
+  String get backupCreatedAt => 'Created';
+
+  @override
+  String get backupDescription =>
+      'Backups include plans, study history, settings, custom images and sounds in one JSON file for moving devices or reinstalling.';
+
+  @override
+  String get backupExported => 'Backup saved';
+
+  @override
+  String get backupExporting => 'Preparing backup…';
+
+  @override
+  String get backupHistoryRange => 'Valid history range';
+
+  @override
+  String get backupInspecting => 'Checking backup…';
+
+  @override
+  String get backupInvalid =>
+      'The backup is damaged or invalid. Current data was not replaced.';
+
+  @override
+  String get backupMedia => 'Images and sounds';
+
+  @override
+  String get backupMediaInvalid =>
+      'An image or sound in the backup cannot be read. Current data was not replaced.';
+
+  @override
+  String get backupMissingHint =>
+      'All plans and records will be kept. Missing images or sounds will use built-in resources when restored.';
+
+  @override
+  String get backupMissingSound => 'Custom sound';
+
+  @override
+  String get backupMissingTitle => 'Some media files are missing';
+
+  @override
+  String get backupNoHistory => 'No valid history records';
+
+  @override
+  String get backupNoPrevious =>
+      'No previous copy yet. Importing a backup will keep a copy of the data it replaces.';
+
+  @override
+  String get backupOperationFailed =>
+      'The operation failed. Your input and original data were kept. Please retry.';
+
+  @override
+  String get backupPausedHint =>
+      'Restored timers are paused. Time after the backup is not counted as study.';
+
+  @override
+  String get backupPlans => 'Plans';
+
+  @override
+  String get backupPreviousHint =>
+      'Only the copy from before the most recent successful replacement is kept. Clearing all data also deletes this copy.';
+
+  @override
+  String get backupPreviousUnreadable =>
+      'The previous snapshots were unreadable. Their original contents were kept, but cannot be restored as a complete backup.';
+
+  @override
+  String get backupReadFailed =>
+      'Complete data could not be read. Resolve the loading error first. Original snapshots have been kept.';
+
+  @override
+  String get backupRecords => 'Study records';
+
+  @override
+  String get backupRecovering => 'Rolling back the unfinished restore…';
+
+  @override
+  String get backupRecoveryCompleted =>
+      'Original data restored. You can continue.';
+
+  @override
+  String get backupRecoveryNeeded =>
+      'Restore is unfinished. Original data and recovery files have been kept. Retry rollback before continuing.';
+
+  @override
+  String get backupRestoreConfirmMessage =>
+      'Current plans, history and settings will be replaced. A local copy of the current data will be kept so you can go back.';
+
+  @override
+  String get backupRestoreConfirmTitle => 'Replace current data?';
+
+  @override
+  String get backupRestored => 'Data restored';
+
+  @override
+  String get backupRestorePreview => 'Restore preview';
+
+  @override
+  String get backupRestoring => 'Restoring. Please wait…';
+
+  @override
+  String get backupRetryRecovery => 'Retry rollback';
+
+  @override
+  String get backupSaveFirst =>
+      'Restore stopped because current changes could not be saved. Retry saving, or export the current data.';
+
+  @override
+  String get backupTitle => 'Backup and restore';
+
+  @override
+  String get backupTooLarge =>
+      'The backup exceeds 64 MiB. Reduce custom media and try again.';
+
+  @override
+  String get backupVersionUnsupported =>
+      'This backup version is not supported. Use a compatible TimeManager version.';
+
+  @override
+  String get exportBackup => 'Export backup';
+
+  @override
+  String get importBackup => 'Restore a backup';
+
+  @override
+  String get loadingDataFailed => 'Unable to load local data';
+
+  @override
+  String get loadingDataFailedHint =>
+      'Your original data has been kept. Retry or restore a backup.';
+
+  @override
+  String get loadingLocalData => 'Loading local data…';
+
+  @override
+  String get restorePreviousBackup =>
+      'Restore data from before the last replacement';
+
+  @override
+  String get retryingSave => 'Retrying…';
+
+  @override
+  String get retryLoading => 'Retry';
+
+  @override
+  String get retrySave => 'Retry saving';
+
+  @override
+  String get unsavedDataHint =>
+      'Changes have not been saved locally. Please retry.';
+
+  @override
+  String get localVersionUnsupported =>
+      'This local data version is not supported. Your original data has been kept. Use a compatible TimeManager version or restore a backup.';
+
+  @override
+  String get resumeTimer => 'Continue';
+
+  @override
+  String get returnHome => 'Return home';
+
+  @override
+  String get timerStartFailed =>
+      'Could not start the timer. Check the remaining duration and try again.';
+
+  @override
+  String get timerAdjustResumeHint =>
+      'Timing pauses while you edit and continues when you close this panel.';
+
+  @override
+  String get timerSavingTime => 'Saving…';
+
+  @override
+  String addStudyMinutes(int minutes) {
+    return '+$minutes min';
+  }
+
+  @override
+  String get timerAdjustmentExpired =>
+      'The plan or learning day has changed. Close this panel and adjust the current plan again.';
+
+  @override
+  String get timerUnsavedTitle => 'Progress has not been saved';
+
+  @override
+  String get timerUnsavedExitHint =>
+      'Timing is paused. Your progress will stay in memory if you return home, where you can retry saving. Closing the app may lose these unsaved changes.';
+
+  @override
+  String get stayOnTimer => 'Stay here';
+
+  @override
+  String get keepChangesAndReturn => 'Keep changes and return';
 }
