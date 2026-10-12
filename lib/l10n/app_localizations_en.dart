@@ -1184,4 +1184,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keepChangesAndReturn => 'Keep changes and return';
+
+  @override
+  String get scheduleCalendar => 'Calendar';
+
+  @override
+  String get manageSchemes => 'Manage schemes';
+
+  @override
+  String get weeklySchedule => 'Weekly schedule';
+
+  @override
+  String get defaultScheme => 'Default scheme';
+
+  @override
+  String get schemeName => 'Scheme name';
+
+  @override
+  String get addScheme => 'New scheme';
+
+  @override
+  String get copyScheme => 'Copy scheme';
+
+  @override
+  String get renameScheme => 'Rename scheme';
+
+  @override
+  String get deleteScheme => 'Delete scheme';
+
+  @override
+  String get deleteSchemeHint =>
+      'Choose what will replace this scheme in the schedule. Studied time and history will be kept.';
+
+  @override
+  String get schemeAtLeastOne => 'Keep at least one scheme.';
+
+  @override
+  String get replacementScheme => 'Replacement';
+
+  @override
+  String get restDay => 'Rest day';
+
+  @override
+  String get restDayHint =>
+      'No tasks are scheduled. Your studied time is still saved.';
+
+  @override
+  String get todayScheme => 'Today\'s scheme';
+
+  @override
+  String get switchTodayScheme => 'Change today\'s scheme';
+
+  @override
+  String get assignScheme => 'Assign scheme';
+
+  @override
+  String get dateOverride => 'Assigned for this date';
+
+  @override
+  String get weeklyDefault => 'From weekly schedule';
+
+  @override
+  String get restoreWeeklySchedule => 'Use weekly schedule';
+
+  @override
+  String get selectDates => 'Select dates';
+
+  @override
+  String get selectDateRange => 'Select a date range';
+
+  @override
+  String selectedDateCount(int count) {
+    return '$count dates selected';
+  }
+
+  @override
+  String get clearSelection => 'Clear selection';
+
+  @override
+  String get workdays => 'Mon–Fri';
+
+  @override
+  String get weekendDays => 'Sat–Sun';
+
+  @override
+  String get noStudyRecords => 'No study records for this date.';
+
+  @override
+  String get pastDateReadOnly =>
+      'Past dates show actual study records and cannot be rescheduled.';
+
+  @override
+  String get schemeEditHint =>
+      'Changes apply to today and future dates using this scheme. Time already studied is kept.';
+
+  @override
+  String currentSchemeCompletion(String percent) {
+    return 'Current scheme: $percent complete';
+  }
+
+  @override
+  String get otherSchemeStudy => 'Other tasks studied today';
+
+  @override
+  String get scheduleSaved => 'Schedule saved';
+
+  @override
+  String get schemeNoLongerActive =>
+      'The day or scheme has changed. Return home to continue the current schedule.';
+
+  @override
+  String get viewSchemeTasks => 'Edit tasks';
 }

@@ -247,7 +247,13 @@ void main() {
       expect(find.byType(StudyTimeAdjustmentDialog), findsOneWidget);
       expect(h.plan.hasStartedToday, isFalse);
       expect(h.plan.isRunning, isFalse);
-      expect(find.textContaining('学习日期'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(StudyTimeAdjustmentDialog),
+          matching: find.textContaining('学习日期'),
+        ),
+        findsOneWidget,
+      );
       await tapDaily(tester, 'cancel_adjust_time');
       expect(h.plan.isRunning, isFalse);
       await tester.pumpWidget(const SizedBox());

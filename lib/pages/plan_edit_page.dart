@@ -22,12 +22,14 @@ class PlanEditPage extends StatefulWidget {
     this.settings,
     this.plan,
     this.media,
+    this.schemeId,
   });
 
   final StudyPlanStore store;
   final SettingsStore? settings;
   final StudyPlan? plan;
   final LocalMediaStore? media;
+  final String? schemeId;
 
   @override
   State<PlanEditPage> createState() => _PlanEditPageState();
@@ -239,6 +241,7 @@ class _PlanEditPageState extends State<PlanEditPage> {
               iconId: _selectedIconId,
               plannedSeconds: seconds,
               customIconPath: _customIconPath,
+              schemeId: widget.schemeId,
             )
             .id;
       } else {

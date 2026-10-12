@@ -159,11 +159,14 @@ class StudyBackupService {
     );
     return StudyBackup(
       createdAt: instant,
-      appVersion: '0.1.8+9',
+      appVersion: '0.2.0+11',
       plans: StudyPlanSnapshot(
         plans: plans,
         records: snapshot.records,
         nextId: snapshot.nextId,
+        schemes: snapshot.schemes,
+        weeklyAssignments: snapshot.weeklyAssignments,
+        dateOverrides: snapshot.dateOverrides,
       ),
       settings: values.copyWith(
         customSoundPath: sound,
@@ -337,6 +340,9 @@ class StudyBackupService {
         }),
         records: backup.plans.records,
         nextId: backup.plans.nextId,
+        schemes: backup.plans.schemes,
+        weeklyAssignments: backup.plans.weeklyAssignments,
+        dateOverrides: backup.plans.dateOverrides,
       );
       final sound = destinations[backup.settings.customSoundPath];
       final newSettings = backup.settings.copyWith(

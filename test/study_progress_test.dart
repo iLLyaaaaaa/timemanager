@@ -162,8 +162,8 @@ void main() {
       expect(store.plans.single.name, '阅读');
       expect(await store.flush(), isTrue);
       expect(await preferences.getString('study_plans_v3'), previous);
-      final migrated = await preferences.getString('study_plans_v5');
-      expect(jsonDecode(migrated!)['version'], 5);
+      final migrated = await preferences.getString('study_plans_v6');
+      expect(jsonDecode(migrated!)['version'], 6);
       expect(jsonDecode(migrated)['plans'][0]['pauseWhenBackgrounded'], isTrue);
     },
   );
@@ -210,7 +210,7 @@ void main() {
       expect(store.records.length, 2);
       expect(store.records.first.date, '2026-09-27');
       expect(await store.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 5);
+      expect(jsonDecode(storage.value!)['version'], 6);
       expect(legacy, contains('plannedMinutes'));
       store.deletePlan('custom_1');
       expect(store.records.length, 2);
@@ -275,7 +275,7 @@ void main() {
       expect(store.plans.single.studiedSeconds, 53);
       expect(store.records.single.studiedSeconds, 53);
       expect(await store.flush(), isTrue);
-      expect(jsonDecode(storage.value!)['version'], 5);
+      expect(jsonDecode(storage.value!)['version'], 6);
       expect(
         jsonDecode(storage.value!)['plans'][0]['pauseWhenBackgrounded'],
         isTrue,
@@ -590,7 +590,7 @@ void main() {
         home: Scaffold(body: StudyStatisticsPage(store: store)),
       ),
     );
-    expect(find.text('今日完成率：200%'), findsOneWidget);
+    expect(find.text('当前方案完成度 200%'), findsOneWidget);
     expect(find.text('超出计划：01:00'), findsOneWidget);
     for (final bar in tester.widgetList<LinearProgressIndicator>(
       find.byType(LinearProgressIndicator),

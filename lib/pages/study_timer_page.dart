@@ -63,6 +63,10 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   late final _settings =
       widget.settings ?? widget.store.settings ?? SettingsStore();
   DateTime _now() => widget.now?.call() ?? widget.store.currentTime;
+  late final _pageStudyDay = widget.store.todayKey;
+  bool get _currentSchedule =>
+      widget.store.todayKey == _pageStudyDay &&
+      widget.store.isPlanActive(widget.planId);
   bool get _controlsBusy =>
       _isLeaving || _operationBusy || _isAdjusting || widget.store.isReplacing;
   bool get _foreground =>
@@ -101,6 +105,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      widget.store.refreshForToday();
       _away = false;
       if (!_isAdjusting) _resumeAdjustmentIfValid();
       if (_isRunning) {
@@ -143,7 +148,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     if (_isRunning || _controlsBusy || !_foreground || !mounted) return;
     widget.store.refreshForToday();
     final plan = widget.store.planById(widget.planId);
-    if (plan == null || plan.isCompletedToday) return;
+    if (plan == null || plan.isCompletedToday || !_currentSchedule) return;
     final instant = _now();
     try {
       final seconds = plan.hasStartedToday
@@ -180,7 +185,12 @@ class _StudyTimerPageState extends State<StudyTimerPage>
   void _scheduleCompletion() {
     if (_scheduleTask != null || _scheduledAlert) return;
     final plan = widget.store.planById(widget.planId);
-    if (plan == null || !mounted || plan.sessionId == null) return;
+    if (plan == null ||
+        !mounted ||
+        plan.sessionId == null ||
+        !_currentSchedule) {
+      return;
+    }
     final sessionId = plan.sessionId!;
     final generation = ++_scheduleGeneration;
     final task = _alerts.scheduleBackgroundCompletion(
@@ -224,7 +234,12 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     }
     final pending = _scheduleTask;
     if (pending != null) await pending;
-    if (!mounted || !_isRunning || _activeSessionId == null) return;
+    if (!mounted ||
+        !_isRunning ||
+        _activeSessionId == null ||
+        !_currentSchedule) {
+      return;
+    }
     await _alerts.cancelBackgroundCompletion(_activeSessionId!);
     _scheduleGeneration++;
     _scheduledAlert = false;
@@ -239,6 +254,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       return;
     }
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      widget.store.refreshForToday();
       widget.store.reconcileRunning(widget.planId, now: _now());
       final current = widget.store.planById(widget.planId);
       if (current == null ||
@@ -328,6 +344,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
     final plan = widget.store.planById(widget.planId);
     if (_isLeaving ||
         widget.store.isReplacing ||
+        !_currentSchedule ||
         _settings.studyDate(_now()) != _adjustmentDay ||
         plan == null ||
         !plan.hasStartedToday ||
@@ -348,7 +365,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
       if (!mounted) return;
       widget.store.refreshForToday();
       final plan = widget.store.planById(widget.planId);
-      if (plan == null) return;
+      if (plan == null || !_currentSchedule) return;
       _resumeProgressDay = plan.progressDay;
       await showDialog<bool>(
         context: context,
@@ -361,6 +378,7 @@ class _StudyTimerPageState extends State<StudyTimerPage>
             if (!mounted) return null;
             widget.store.refreshForToday();
             if (widget.store.planById(widget.planId) == null ||
+                !_currentSchedule ||
                 widget.store.isReplacing ||
                 _settings.studyDate(_now()) != _adjustmentDay) {
               _resumeAfterAdjustment = false;
@@ -449,14 +467,22 @@ class _StudyTimerPageState extends State<StudyTimerPage>
         animation: widget.store,
         builder: (context, _) {
           final plan = widget.store.planById(widget.planId);
-          if (plan == null) {
+          if (plan == null || !_currentSchedule) {
             return Scaffold(
               appBar: AppBar(
                 leading: _backButton(context),
                 title: Text(AppLocalizations.of(context)!.studyTimer),
               ),
               body: Center(
-                child: Text(AppLocalizations.of(context)!.planMissing),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    plan == null
+                        ? AppLocalizations.of(context)!.planMissing
+                        : AppLocalizations.of(context)!.schemeNoLongerActive,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
             );
           }

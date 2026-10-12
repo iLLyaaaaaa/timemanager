@@ -9,7 +9,8 @@ class SharedPreferencesPlanStorage implements StudyPlanStorage {
   SharedPreferencesPlanStorage({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
 
-  static const _key = 'study_plans_v5';
+  static const _key = 'study_plans_v6';
+  static const _version5Key = 'study_plans_v5';
   static const _previousKey = 'study_plans_v4';
   static const _olderKey = 'study_plans_v3';
   static const _legacyKey = 'study_plans_v1';
@@ -18,6 +19,7 @@ class SharedPreferencesPlanStorage implements StudyPlanStorage {
   @override
   Future<String?> read() async =>
       await _preferences.getString(_key) ??
+      await _preferences.getString(_version5Key) ??
       await _preferences.getString(_previousKey) ??
       await _preferences.getString(_olderKey) ??
       await _preferences.getString(_legacyKey);

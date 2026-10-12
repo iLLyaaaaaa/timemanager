@@ -1,9 +1,12 @@
+import 'study_scheme.dart';
+
 class StudyPlan {
   const StudyPlan({
     required this.id,
     required this.name,
     required this.iconId,
     required this.plannedSeconds,
+    this.schemeId = defaultStudySchemeId,
     this.pauseWhenBackgrounded = true,
     this.progressDay,
     this.remainingSeconds = 0,
@@ -22,6 +25,7 @@ class StudyPlan {
   final String name;
   final String iconId;
   final int plannedSeconds;
+  final String schemeId;
   final bool pauseWhenBackgrounded;
   final String? progressDay;
   final int remainingSeconds;
@@ -46,6 +50,7 @@ class StudyPlan {
   }) {
     return StudyPlan(
       id: id,
+      schemeId: schemeId,
       name: name ?? this.name,
       iconId: iconId ?? this.iconId,
       plannedSeconds: plannedSeconds ?? this.plannedSeconds,
@@ -77,6 +82,7 @@ class StudyPlan {
   }) {
     return StudyPlan(
       id: id,
+      schemeId: schemeId,
       name: name,
       iconId: iconId,
       plannedSeconds: plannedSeconds,
@@ -105,6 +111,7 @@ class StudyPlan {
   }) {
     return StudyPlan(
       id: id,
+      schemeId: schemeId,
       name: name,
       iconId: iconId,
       plannedSeconds: plannedSeconds,
@@ -125,6 +132,7 @@ class StudyPlan {
 
   Map<String, Object?> toJson() => {
     'id': id,
+    'schemeId': schemeId,
     'name': name,
     'iconId': iconId,
     'plannedSeconds': plannedSeconds,
@@ -176,6 +184,9 @@ class StudyPlan {
     }
     return StudyPlan(
       id: id,
+      schemeId: json['schemeId'] is String
+          ? json['schemeId'] as String
+          : defaultStudySchemeId,
       name: name,
       iconId: iconId,
       plannedSeconds: seconds is int && seconds > 0

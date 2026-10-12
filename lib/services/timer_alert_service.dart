@@ -24,7 +24,9 @@ class TimerAlertService {
   final FlutterLocalNotificationsPlugin _notifications;
   static const _soundChannel = MethodChannel('timemanager/notification_sound');
   Future<void>? _initialization;
-  final Map<String, int> _generation = {};
+  // Notifications belong to the app; cancellation from the calendar/root must
+  // also invalidate requests still awaiting platform calls in a timer page.
+  static final Map<String, int> _generation = {};
 
   Future<void> _initialize() => _initialization ??= _initializeOnce();
 

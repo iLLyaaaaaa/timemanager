@@ -11,6 +11,9 @@ import '../widgets/study_plan_filter_bar.dart';
 import '../widgets/save_retry_banner.dart';
 import '../widgets/study_plan_card.dart';
 import '../widgets/app_section_card.dart';
+import '../widgets/study_scheme_picker.dart';
+import 'study_calendar_page.dart';
+import 'scheme_management_page.dart';
 import '../theme/app_theme.dart';
 import 'plan_edit_page.dart';
 import 'plan_management_page.dart';
@@ -41,6 +44,7 @@ class _StudyHomePageState extends State<StudyHomePage> {
   final _searchController = TextEditingController();
   StudyPlanFilter _filter = StudyPlanFilter.all;
   bool _openingTimer = false;
+  bool _switchingScheme = false;
   late final SettingsStore _settings = widget.settings ?? SettingsStore();
 
   @override
@@ -53,22 +57,61 @@ class _StudyHomePageState extends State<StudyHomePage> {
   void _openManagement() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            PlanManagementPage(store: widget.store, settings: _settings),
+        builder: (_) => widget.store.todaySchemeId == null
+            ? SchemeManagementPage(store: widget.store, settings: _settings)
+            : PlanManagementPage(
+                store: widget.store,
+                settings: _settings,
+                schemeId: widget.store.todaySchemeId,
+              ),
       ),
     );
   }
 
   void _addPlan() {
+    if (widget.store.todaySchemeId == null) {
+      _switchTodayScheme();
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PlanEditPage(store: widget.store, settings: _settings),
+        builder: (_) => PlanEditPage(
+          store: widget.store,
+          settings: _settings,
+          schemeId: widget.store.todaySchemeId,
+        ),
       ),
     );
   }
 
+  Future<void> _switchTodayScheme() async {
+    if (_switchingScheme || widget.store.isReplacing) return;
+    setState(() => _switchingScheme = true);
+    try {
+      final choice = await showStudySchemePicker(
+        context,
+        widget.store,
+        title: AppLocalizations.of(context)!.switchTodayScheme,
+        currentId: widget.store.todaySchemeId,
+      );
+      if (choice == null || !mounted || widget.store.isReplacing) return;
+      widget.store.assignDates([widget.store.studyDate], choice.schemeId);
+      if (!await widget.store.flush() && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.dataSaveFailed)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _switchingScheme = false);
+    }
+  }
+
   Future<void> _startStudy(StudyPlan plan) async {
-    if (_openingTimer || widget.store.isReplacing) return;
+    if (_openingTimer ||
+        widget.store.isReplacing ||
+        !widget.store.isPlanActive(plan.id)) {
+      return;
+    }
     _openingTimer = true;
     FocusScope.of(context).unfocus();
     try {
@@ -152,7 +195,12 @@ class _StudyHomePageState extends State<StudyHomePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final titles = [l10n.todayStudy, l10n.studyStatistics, l10n.settings];
+    final titles = [
+      l10n.todayStudy,
+      l10n.scheduleCalendar,
+      l10n.studyStatistics,
+      l10n.settings,
+    ];
 
     return AnimatedBuilder(
       animation: Listenable.merge([widget.store, _settings]),
@@ -188,7 +236,8 @@ class _StudyHomePageState extends State<StudyHomePage> {
           bucket: _pageStorage,
           child: switch (_selectedIndex) {
             0 => _buildHome(context),
-            1 => StudyStatisticsPage(store: widget.store),
+            1 => StudyCalendarPage(store: widget.store, settings: _settings),
+            2 => StudyStatisticsPage(store: widget.store),
             _ => SettingsPage(settings: _settings, plans: widget.store),
           },
         ),
@@ -204,6 +253,11 @@ class _StudyHomePageState extends State<StudyHomePage> {
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: AppLocalizations.of(context)!.home,
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
+              label: l10n.scheduleCalendar,
             ),
             NavigationDestination(
               icon: Icon(Icons.bar_chart_outlined),
@@ -222,17 +276,14 @@ class _StudyHomePageState extends State<StudyHomePage> {
   }
 
   Widget _buildHome(BuildContext context) {
-    final plans = widget.store.plans;
+    final plans = widget.store.todayPlans;
     final colors = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final totalSeconds = plans.fold<int>(
       0,
       (total, plan) => total + plan.plannedSeconds,
     );
-    final studiedSeconds = plans.fold<int>(
-      0,
-      (total, plan) => total + plan.studiedSeconds,
-    );
+    final studiedSeconds = widget.store.todayStudiedSeconds;
     final completedPlans = plans.where((plan) => plan.isCompletedToday).length;
     final continuePlan = planToContinue(plans);
     final visiblePlans = filterStudyPlans(
@@ -262,6 +313,29 @@ class _StudyHomePageState extends State<StudyHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${l10n.todayScheme} · ${studySchemeName(context, widget.store.todayScheme)}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(color: colors.onPrimaryContainer),
+                            ),
+                          ),
+                          IconButton(
+                            key: const ValueKey('switch_today_scheme'),
+                            tooltip: l10n.switchTodayScheme,
+                            onPressed:
+                                _switchingScheme || widget.store.isReplacing
+                                ? null
+                                : _switchTodayScheme,
+                            icon: const Icon(Icons.swap_horiz),
+                            color: colors.onPrimaryContainer,
+                          ),
+                        ],
+                      ),
                       Row(
                         children: [
                           Expanded(
@@ -380,7 +454,11 @@ class _StudyHomePageState extends State<StudyHomePage> {
                       key: const ValueKey('home_add_plan'),
                       onPressed: widget.store.hasLoadError ? null : _addPlan,
                       icon: const Icon(Icons.add_rounded, size: 20),
-                      label: Text(l10n.addPlan),
+                      label: Text(
+                        widget.store.todaySchemeId == null
+                            ? l10n.assignScheme
+                            : l10n.addPlan,
+                      ),
                     ),
                   ],
                 ),
@@ -425,6 +503,8 @@ class _StudyHomePageState extends State<StudyHomePage> {
                         Text(
                           widget.store.hasLoadError
                               ? l10n.planLoadFailed
+                              : widget.store.todaySchemeId == null
+                              ? l10n.restDayHint
                               : l10n.noPlansHome,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -435,7 +515,11 @@ class _StudyHomePageState extends State<StudyHomePage> {
                             key: const ValueKey('empty_add_plan'),
                             onPressed: _addPlan,
                             icon: const Icon(Icons.add_rounded),
-                            label: Text(l10n.addPlan),
+                            label: Text(
+                              widget.store.todaySchemeId == null
+                                  ? l10n.assignScheme
+                                  : l10n.addPlan,
+                            ),
                           ),
                         ],
                       ],

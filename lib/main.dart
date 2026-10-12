@@ -16,6 +16,7 @@ import 'models/app_settings.dart';
 import 'pages/backup_page.dart';
 import 'services/backup_file_access.dart';
 import 'services/study_backup_service.dart';
+import 'services/timer_alert_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -232,10 +233,11 @@ class _AppBootstrapState extends State<AppBootstrap> {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, this.store, this.settings});
+  const MyApp({super.key, this.store, this.settings, this.scheduleAlerts});
 
   final StudyPlanStore? store;
   final SettingsStore? settings;
+  final TimerAlertService? scheduleAlerts;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -244,20 +246,65 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final StudyPlanStore _store;
   late final SettingsStore _settings;
+  TimerAlertService? _ownedScheduleAlerts;
+  Timer? _resetTimer;
+
+  void _cancelInvalidatedNotifications() {
+    for (final id in _store.takeInvalidatedSessions()) {
+      final alerts =
+          widget.scheduleAlerts ??
+          (_ownedScheduleAlerts ??= TimerAlertService());
+      unawaited(alerts.cancelBackgroundCompletion(id));
+    }
+  }
+
+  void _armDailyReset() {
+    _resetTimer?.cancel();
+    final now = _store.currentTime;
+    final values = _settings.settings;
+    var next = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      values.dailyResetHour,
+      values.dailyResetMinute,
+    );
+    if (!next.isAfter(now)) {
+      next = DateTime(
+        now.year,
+        now.month,
+        now.day + 1,
+        values.dailyResetHour,
+        values.dailyResetMinute,
+      );
+    }
+    _resetTimer = Timer(next.difference(now), () {
+      _store.refreshForToday();
+      _armDailyReset();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _settings = widget.settings ?? SettingsStore();
     _store = widget.store ?? StudyPlanStore(settings: _settings);
+    _store.addListener(_cancelInvalidatedNotifications);
+    _settings.addListener(_armDailyReset);
+    _cancelInvalidatedNotifications();
+    _armDailyReset();
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _store.refreshForToday();
+    if (state == AppLifecycleState.resumed) {
+      _store.refreshForToday();
+      _armDailyReset();
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      _resetTimer?.cancel();
       _store.flush();
       _settings.flush();
     }
@@ -266,6 +313,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _resetTimer?.cancel();
+    _store.removeListener(_cancelInvalidatedNotifications);
+    _settings.removeListener(_armDailyReset);
+    final alerts = _ownedScheduleAlerts;
+    if (alerts != null) unawaited(alerts.dispose());
     _store.dispose();
     _settings.dispose();
     super.dispose();

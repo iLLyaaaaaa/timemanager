@@ -279,6 +279,8 @@ void main() {
       ('empty_add_plan', '阅读'),
       ('home_add_plan', 'Python'),
     ]) {
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pumpAndSettle();
       expect(find.byType(PlanEditPage), findsOneWidget);

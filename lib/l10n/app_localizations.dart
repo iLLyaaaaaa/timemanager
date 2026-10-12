@@ -2125,6 +2125,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep changes and return'**
   String get keepChangesAndReturn;
+
+  /// No description provided for @scheduleCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get scheduleCalendar;
+
+  /// No description provided for @manageSchemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage schemes'**
+  String get manageSchemes;
+
+  /// No description provided for @weeklySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly schedule'**
+  String get weeklySchedule;
+
+  /// No description provided for @defaultScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Default scheme'**
+  String get defaultScheme;
+
+  /// No description provided for @schemeName.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheme name'**
+  String get schemeName;
+
+  /// No description provided for @addScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'New scheme'**
+  String get addScheme;
+
+  /// No description provided for @copyScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy scheme'**
+  String get copyScheme;
+
+  /// No description provided for @renameScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename scheme'**
+  String get renameScheme;
+
+  /// No description provided for @deleteScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete scheme'**
+  String get deleteScheme;
+
+  /// No description provided for @deleteSchemeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what will replace this scheme in the schedule. Studied time and history will be kept.'**
+  String get deleteSchemeHint;
+
+  /// No description provided for @schemeAtLeastOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at least one scheme.'**
+  String get schemeAtLeastOne;
+
+  /// No description provided for @replacementScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Replacement'**
+  String get replacementScheme;
+
+  /// No description provided for @restDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest day'**
+  String get restDay;
+
+  /// No description provided for @restDayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks are scheduled. Your studied time is still saved.'**
+  String get restDayHint;
+
+  /// No description provided for @todayScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s scheme'**
+  String get todayScheme;
+
+  /// No description provided for @switchTodayScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Change today\'s scheme'**
+  String get switchTodayScheme;
+
+  /// No description provided for @assignScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign scheme'**
+  String get assignScheme;
+
+  /// No description provided for @dateOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned for this date'**
+  String get dateOverride;
+
+  /// No description provided for @weeklyDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'From weekly schedule'**
+  String get weeklyDefault;
+
+  /// No description provided for @restoreWeeklySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Use weekly schedule'**
+  String get restoreWeeklySchedule;
+
+  /// No description provided for @selectDates.
+  ///
+  /// In en, this message translates to:
+  /// **'Select dates'**
+  String get selectDates;
+
+  /// No description provided for @selectDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a date range'**
+  String get selectDateRange;
+
+  /// No description provided for @selectedDateCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} dates selected'**
+  String selectedDateCount(int count);
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get clearSelection;
+
+  /// No description provided for @workdays.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon–Fri'**
+  String get workdays;
+
+  /// No description provided for @weekendDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat–Sun'**
+  String get weekendDays;
+
+  /// No description provided for @noStudyRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No study records for this date.'**
+  String get noStudyRecords;
+
+  /// No description provided for @pastDateReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Past dates show actual study records and cannot be rescheduled.'**
+  String get pastDateReadOnly;
+
+  /// No description provided for @schemeEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes apply to today and future dates using this scheme. Time already studied is kept.'**
+  String get schemeEditHint;
+
+  /// No description provided for @currentSchemeCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Current scheme: {percent} complete'**
+  String currentSchemeCompletion(String percent);
+
+  /// No description provided for @otherSchemeStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Other tasks studied today'**
+  String get otherSchemeStudy;
+
+  /// No description provided for @scheduleSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule saved'**
+  String get scheduleSaved;
+
+  /// No description provided for @schemeNoLongerActive.
+  ///
+  /// In en, this message translates to:
+  /// **'The day or scheme has changed. Return home to continue the current schedule.'**
+  String get schemeNoLongerActive;
+
+  /// No description provided for @viewSchemeTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tasks'**
+  String get viewSchemeTasks;
 }
 
 class _AppLocalizationsDelegate

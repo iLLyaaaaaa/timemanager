@@ -18,10 +18,16 @@ import '../services/timer_alert_service.dart';
 import '../theme/app_theme.dart';
 
 class PlanManagementPage extends StatefulWidget {
-  const PlanManagementPage({super.key, required this.store, this.settings});
+  const PlanManagementPage({
+    super.key,
+    required this.store,
+    this.settings,
+    this.schemeId,
+  });
 
   final StudyPlanStore store;
   final SettingsStore? settings;
+  final String? schemeId;
 
   @override
   State<PlanManagementPage> createState() => _PlanManagementPageState();
@@ -35,6 +41,11 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
   final Set<String> _selectedIds = {};
   final _media = LocalMediaStore();
   final _alerts = TimerAlertService();
+  late final _schemeId =
+      widget.schemeId ??
+      widget.store.todaySchemeId ??
+      widget.store.schemes.first.id;
+  List<StudyPlan> get _schemePlans => widget.store.plansForScheme(_schemeId);
 
   Future<void> _removeUnusedIcons(Iterable<String?> paths) async {
     for (final path in paths.toSet()) {
@@ -47,9 +58,16 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
 
   Future<void> _restoreDeletedPlan(StudyPlan plan, int index) async {
     widget.store.restorePlan(plan, index: index);
-    if (!mounted || !plan.isRunning || plan.sessionId == null) return;
+    final restored = widget.store.planById(plan.id);
+    if (!mounted ||
+        restored == null ||
+        !restored.isRunning ||
+        restored.sessionId == null ||
+        !widget.store.isPlanActive(restored.id)) {
+      return;
+    }
     await _alerts.scheduleBackgroundCompletion(
-      plan: plan,
+      plan: restored,
       settings: _settings.settings,
       l10n: AppLocalizations.of(context)!,
     );
@@ -66,8 +84,12 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
   void _openEditor([StudyPlan? plan]) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            PlanEditPage(store: widget.store, settings: _settings, plan: plan),
+        builder: (_) => PlanEditPage(
+          store: widget.store,
+          settings: _settings,
+          plan: plan,
+          schemeId: _schemeId,
+        ),
       ),
     );
   }
@@ -111,7 +133,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
   }
 
   Future<void> _deleteSelected() async {
-    final ids = widget.store.plans
+    final ids = _schemePlans
         .where((plan) => _selectedIds.contains(plan.id))
         .map((plan) => plan.id)
         .toSet();
@@ -136,7 +158,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final removedPlans = widget.store.plans
+    final removedPlans = _schemePlans
         .where((plan) => ids.contains(plan.id))
         .toList();
     final removedIcons = removedPlans
@@ -340,7 +362,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
       body: AnimatedBuilder(
         animation: widget.store,
         builder: (context, _) {
-          final plans = widget.store.plans;
+          final plans = _schemePlans;
           if (plans.isEmpty) {
             return ListView(
               padding: const EdgeInsets.all(AppTheme.pagePadding),
@@ -390,9 +412,15 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
               if (index == 0) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _bulkMode
-                      ? Text(l10n.bulkAllPlansHint)
-                      : StudyPlanFilterBar(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.schemeEditHint),
+                      const SizedBox(height: 12),
+                      if (_bulkMode)
+                        Text(l10n.bulkAllPlansHint)
+                      else
+                        StudyPlanFilterBar(
                           plans: plans,
                           controller: _searchController,
                           filter: _filter,
@@ -400,6 +428,8 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
                           onFilterChanged: (filter) =>
                               setState(() => _filter = filter),
                         ),
+                    ],
+                  ),
                 );
               }
               if (visiblePlans.isEmpty) {
@@ -422,7 +452,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
           ? null
           : AnimatedBuilder(
               animation: widget.store,
-              builder: (context, _) => widget.store.plans.isEmpty
+              builder: (context, _) => _schemePlans.isEmpty
                   ? const SizedBox.shrink()
                   : FloatingActionButton.extended(
                       onPressed: () => _openEditor(),
@@ -434,7 +464,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
           ? AnimatedBuilder(
               animation: widget.store,
               builder: (context, _) {
-                final plans = widget.store.plans;
+                final plans = _schemePlans;
                 final selectedCount = plans
                     .where((plan) => _selectedIds.contains(plan.id))
                     .length;
@@ -480,7 +510,7 @@ class _PlanManagementPageState extends State<PlanManagementPage> {
           : compact
           ? AnimatedBuilder(
               animation: widget.store,
-              builder: (context, _) => widget.store.plans.isEmpty
+              builder: (context, _) => _schemePlans.isEmpty
                   ? const SizedBox.shrink()
                   : Material(
                       color: Theme.of(context).colorScheme.surface,

@@ -10,6 +10,7 @@ import '../widgets/study_history_view.dart';
 import '../widgets/study_plan_layout.dart';
 import '../widgets/app_section_card.dart';
 import '../theme/app_theme.dart';
+import '../widgets/study_scheme_picker.dart';
 import 'study_review_page.dart';
 
 class StudyStatisticsPage extends StatefulWidget {
@@ -41,12 +42,12 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
-    final plans = store.plans;
+    final plans = store.todayPlans;
     final plannedSeconds = plans.fold<int>(
       0,
       (sum, plan) => sum + plan.plannedSeconds,
     );
-    final studiedSeconds = plans.fold<int>(
+    final currentStudiedSeconds = plans.fold<int>(
       0,
       (sum, plan) => sum + plan.studiedSeconds,
     );
@@ -56,7 +57,13 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
           sum +
           (plan.hasStartedToday ? plan.remainingSeconds : plan.plannedSeconds),
     );
-    final completion = _completion(studiedSeconds, plannedSeconds);
+    final studiedSeconds = store.todayStudiedSeconds;
+    final completion = _completion(currentStudiedSeconds, plannedSeconds);
+    final ids = plans.map((p) => p.id).toSet();
+    final otherRecords = store
+        .recordsOn(store.studyDate)
+        .where((r) => !ids.contains(r.planId) && r.studiedSeconds > 0)
+        .toList();
     final colors = Theme.of(context).colorScheme;
 
     return ListView(
@@ -141,6 +148,7 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
                     AppMetric(
                       label: AppLocalizations.of(context)!.studiedTime,
                       value: formatStudyDuration(studiedSeconds),
+                      valueKey: const ValueKey('statistics_studied_total'),
                       foreground: colors.onPrimaryContainer,
                     ),
                     AppMetric(
@@ -153,7 +161,7 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
                 const SizedBox(height: 20),
                 Text(
                   AppLocalizations.of(context)!
-                      .overviewCompletion(_percent(completion)),
+                      .currentSchemeCompletion(_percent(completion)),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colors.onPrimaryContainer,
@@ -194,6 +202,26 @@ class _StudyStatisticsPageState extends State<StudyStatisticsPage> {
               _PlanStatisticsCard(plan: plan),
               const SizedBox(height: AppTheme.cardSpacing),
             ],
+          if (otherRecords.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context)!.otherSchemeStudy,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            for (final record in otherRecords)
+              Card(
+                child: ListTile(
+                  key: ValueKey('other_study_${record.id}'),
+                  title: Text(
+                    record.planName ??
+                        store.planById(record.planId)?.name ??
+                        AppLocalizations.of(context)!.reviewDeletedPlans(1),
+                  ),
+                  subtitle: Text(studyRecordSchemeName(context, store, record)),
+                  trailing: Text(formatStudyDuration(record.studiedSeconds)),
+                ),
+              ),
+          ],
         ],
       ],
     );

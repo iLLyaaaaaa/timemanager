@@ -401,6 +401,7 @@ class _BackupPageState extends State<BackupPage> {
             runSpacing: 8,
             children: [
               detail(l10n.backupPlans, '${backup.plans.plans.length}'),
+              detail(l10n.manageSchemes, '${backup.plans.schemes.length}'),
               detail(l10n.backupRecords, '${backup.plans.records.length}'),
               detail(l10n.backupMedia, '${backup.media.length}'),
             ],

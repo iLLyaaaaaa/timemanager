@@ -155,7 +155,14 @@ void main() {
       expect(find.text('Theme Mode'), findsOneWidget);
       await tester.tap(find.text('Home'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('高等数学'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('高等数学'), findsOneWidget);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 1000));
+      await tester.pumpAndSettle();
       expect(find.text('专注每一天'), findsOneWidget);
       expect(find.text('Manage Plans'), findsOneWidget);
       await tester.tap(find.text('Settings'));

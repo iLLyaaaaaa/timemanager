@@ -5,6 +5,9 @@ class StudyRecord {
     required this.date,
     required this.plannedSeconds,
     required this.studiedSeconds,
+    this.schemeId,
+    this.schemeName,
+    this.planName,
   });
 
   final String id;
@@ -12,13 +15,19 @@ class StudyRecord {
   final String date;
   final int plannedSeconds;
   final int studiedSeconds;
+  final String? schemeId;
+  final String? schemeName;
+  final String? planName;
 
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
     'id': id,
     'planId': planId,
     'date': date,
     'plannedSeconds': plannedSeconds,
     'studiedSeconds': studiedSeconds,
+    'schemeId': schemeId,
+    'schemeName': schemeName,
+    'planName': planName,
   };
 
   factory StudyRecord.fromJson(Map<String, dynamic> json) {
@@ -42,6 +51,9 @@ class StudyRecord {
       date: date,
       plannedSeconds: plannedSeconds,
       studiedSeconds: studiedSeconds,
+      schemeId: json['schemeId'] as String?,
+      schemeName: json['schemeName'] as String?,
+      planName: json['planName'] as String?,
     );
   }
 }

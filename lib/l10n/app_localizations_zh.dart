@@ -1125,4 +1125,110 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get keepChangesAndReturn => '保留修改返回';
+
+  @override
+  String get scheduleCalendar => '日历';
+
+  @override
+  String get manageSchemes => '管理方案';
+
+  @override
+  String get weeklySchedule => '每周安排';
+
+  @override
+  String get defaultScheme => '默认方案';
+
+  @override
+  String get schemeName => '方案名称';
+
+  @override
+  String get addScheme => '新建方案';
+
+  @override
+  String get copyScheme => '复制方案';
+
+  @override
+  String get renameScheme => '重命名方案';
+
+  @override
+  String get deleteScheme => '删除方案';
+
+  @override
+  String get deleteSchemeHint => '请选择替代安排，将统一替换这套方案的排期。已学时长和历史记录会保留。';
+
+  @override
+  String get schemeAtLeastOne => '至少保留一套方案。';
+
+  @override
+  String get replacementScheme => '替代安排';
+
+  @override
+  String get restDay => '休息日';
+
+  @override
+  String get restDayHint => '今天没有安排学习任务，已学时长仍会保留。';
+
+  @override
+  String get todayScheme => '今日方案';
+
+  @override
+  String get switchTodayScheme => '切换今日方案';
+
+  @override
+  String get assignScheme => '分配方案';
+
+  @override
+  String get dateOverride => '单独分配的日期';
+
+  @override
+  String get weeklyDefault => '按每周安排';
+
+  @override
+  String get restoreWeeklySchedule => '恢复每周安排';
+
+  @override
+  String get selectDates => '选择多个日期';
+
+  @override
+  String get selectDateRange => '选择日期区间';
+
+  @override
+  String selectedDateCount(int count) {
+    return '已选择 $count 个日期';
+  }
+
+  @override
+  String get clearSelection => '清除选择';
+
+  @override
+  String get workdays => '周一至周五';
+
+  @override
+  String get weekendDays => '周六、周日';
+
+  @override
+  String get noStudyRecords => '这一天还没有学习记录。';
+
+  @override
+  String get pastDateReadOnly => '过去日期展示实际学习记录，不能重新排期。';
+
+  @override
+  String get schemeEditHint => '修改会同步今天和未来使用此方案的日期，保留已学时长。';
+
+  @override
+  String currentSchemeCompletion(String percent) {
+    return '当前方案完成度 $percent';
+  }
+
+  @override
+  String get otherSchemeStudy => '今日其他已学任务';
+
+  @override
+  String get scheduleSaved => '安排已保存';
+
+  @override
+  String get schemeNoLongerActive => '学习日期或方案已变化，请返回首页继续当前安排。';
+
+  @override
+  String get viewSchemeTasks => '编辑任务';
 }

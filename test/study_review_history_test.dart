@@ -351,7 +351,7 @@ void main() {
         75,
       );
       expect(storage.writes, writes);
-      expect(jsonDecode(storage.value!)['version'], 5);
+      expect(jsonDecode(storage.value!)['version'], 6);
       expect(settings.settings.toJson()['version'], 4);
       final reopened = await StudyPlanStore.load(
         storage: storage,

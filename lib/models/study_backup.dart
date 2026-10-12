@@ -51,7 +51,7 @@ class StudyBackup {
 
   Map<String, Object?> toJson() => {
     'format': 'timemanager-backup',
-    'version': 1,
+    'version': 2,
     'createdAt': createdAt.toUtc().toIso8601String(),
     'appVersion': appVersion,
     'plans': plans.toJson(),
@@ -77,13 +77,16 @@ class StudyBackup {
           value['format'] != 'timemanager-backup') {
         throw const BackupException('invalid');
       }
-      if (value['version'] != 1) throw const BackupException('version');
+      if (!const [1, 2].contains(value['version'])) {
+        throw const BackupException('version');
+      }
       if (value['createdAt'] is! String ||
           value['appVersion'] is! String ||
           value['plans'] is! Map ||
           value['settings'] is! Map ||
           value['media'] is! List ||
-          (value['plans'] as Map)['version'] != 5 ||
+          (value['plans'] as Map)['version'] !=
+              (value['version'] == 1 ? 5 : 6) ||
           (value['settings'] as Map)['version'] != 4) {
         throw const BackupException('invalid');
       }
@@ -183,6 +186,9 @@ class StudyBackup {
         ),
         records: snapshot.records,
         nextId: snapshot.nextId,
+        schemes: snapshot.schemes,
+        weeklyAssignments: snapshot.weeklyAssignments,
+        dateOverrides: snapshot.dateOverrides,
       );
       return StudyBackup(
         createdAt: createdAt,
