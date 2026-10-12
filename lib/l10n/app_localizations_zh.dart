@@ -1190,6 +1190,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDates => '选择多个日期';
 
   @override
+  String get bulkSchedule => '批量管理';
+
+  @override
   String get selectDateRange => '选择日期区间';
 
   @override

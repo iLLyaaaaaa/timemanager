@@ -1251,6 +1251,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectDates => 'Select dates';
 
   @override
+  String get bulkSchedule => 'Bulk manage dates';
+
+  @override
   String get selectDateRange => 'Select a date range';
 
   @override

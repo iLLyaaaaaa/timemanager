@@ -303,6 +303,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑任务'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('新增计划'));
     await tester.pumpAndSettle();
     expect(
@@ -316,6 +318,8 @@ void main() {
     await tester.tap(find.text('保存计划'));
     await tester.pumpAndSettle();
     expect(plans.plans.single.plannedSeconds, 3690);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.tap(find.text('设置'));

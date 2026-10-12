@@ -126,11 +126,66 @@ void main() {
       await tester.tap(find.byIcon(Icons.calendar_month_outlined));
       await tester.pumpAndSettle();
       expect(find.byType(StudyCalendarPage), findsOneWidget);
-      expect(find.byKey(const ValueKey('manage_schemes')), findsOneWidget);
+      expect(find.byKey(const ValueKey('manage_schemes')), findsNothing);
+      expect(find.text('批量管理'), findsOneWidget);
+      expect(find.text('编辑任务'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  for (final restDay in [false, true]) {
+    testWidgets(
+      'home management edits any scheme and its tasks, rest day $restDay',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final h = _h();
+        final scheme = h.store.addScheme('周末');
+        if (restDay) h.store.assignDates([h.store.studyDate], null);
+        final todayScheme = h.store.todaySchemeId;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: const ValueKey('schedule_preview'),
+            child: localizedApp(
+              home: StudyHomePage(store: h.store, settings: h.settings),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        if (!restDay) await _capture(tester, 'home_management_entry');
+        await _tap(tester, 'home_manage_plans');
+        expect(find.byType(SchemeManagementPage), findsOneWidget);
+        expect(find.byType(PlanManagementPage), findsNothing);
+        expect(
+          find.byKey(ValueKey('edit_scheme_${scheme.id}')),
+          findsOneWidget,
+        );
+        if (!restDay) await _capture(tester, 'home_scheme_management');
+        await _tap(tester, 'scheme_menu_${scheme.id}');
+        await tester.tap(find.text('重命名方案'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('scheme_name')),
+          '周末阅读',
+        );
+        await _tap(tester, 'save_scheme_name');
+        expect(h.store.schemeById(scheme.id)!.name, '周末阅读');
+        await _tap(tester, 'edit_scheme_${scheme.id}');
+        expect(find.byType(PlanManagementPage), findsOneWidget);
+        await _tap(tester, 'management_empty_add');
+        await tester.enterText(find.byKey(const ValueKey('plan_name')), '周末数学');
+        await _tap(tester, 'save_plan');
+        expect(h.store.plansForScheme(scheme.id).single.name, '周末数学');
+        expect(h.store.todaySchemeId, todayScheme);
+        expect(h.store.plansForScheme(defaultStudySchemeId).single.id, h.id);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
 
   testWidgets(
     'batch dates override weekly rules and can restore or become rest days',
@@ -145,6 +200,23 @@ void main() {
         ),
       );
       await _tap(tester, 'select_schedule_dates');
+      expect(find.text('已选择 0 个日期'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('assign_batch_dates')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.byKey(const ValueKey('schedule_day_2026-10-11')),
+            )
+            .onPressed,
+        isNull,
+      );
       await _tap(tester, 'schedule_day_2026-10-13');
       await _tap(tester, 'schedule_day_2026-10-15');
       await _tap(tester, 'assign_batch_dates');
@@ -153,6 +225,11 @@ void main() {
         '2026-10-13': scheme.id,
         '2026-10-15': scheme.id,
       });
+      expect(find.text('安排已保存'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('assign_batch_dates')).hitTestable(),
+        findsOneWidget,
+      );
       await _tap(tester, 'assign_batch_dates');
       await _tap(tester, 'pick_scheme_rest');
       expect(h.store.schemeIdOn(DateTime(2026, 10, 13)), isNull);
@@ -184,6 +261,44 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'batch selection spans months and clearing or exiting resets it',
+    (tester) async {
+      final h = _h();
+      final scheme = h.store.addScheme('假期');
+      await tester.pumpWidget(
+        localizedApp(
+          home: Scaffold(
+            body: StudyCalendarPage(store: h.store, settings: h.settings),
+          ),
+        ),
+      );
+      await _tap(tester, 'select_schedule_dates');
+      await _tap(tester, 'schedule_day_2026-10-13');
+      await _tap(tester, 'schedule_next_month');
+      await _tap(tester, 'schedule_day_2026-11-01');
+      expect(find.text('已选择 2 个日期'), findsOneWidget);
+      await _tap(tester, 'assign_batch_dates');
+      await _tap(tester, 'pick_scheme_${scheme.id}');
+      expect(h.store.dateOverrides, {
+        '2026-10-13': scheme.id,
+        '2026-11-01': scheme.id,
+      });
+      await _tap(tester, 'clear_schedule_selection');
+      expect(find.text('已选择 0 个日期'), findsOneWidget);
+      await _tap(tester, 'schedule_day_2026-11-02');
+      await _tap(tester, 'select_schedule_dates');
+      expect(
+        find.byKey(const ValueKey('schedule_batch_actions')),
+        findsNothing,
+      );
+      await _tap(tester, 'select_schedule_dates');
+      expect(find.text('已选择 0 个日期'), findsOneWidget);
+      expect(h.store.dateOverrides.length, 2);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('range picker assigns every day in an inclusive range', (
     tester,
   ) async {
@@ -196,6 +311,7 @@ void main() {
         ),
       ),
     );
+    await _tap(tester, 'select_schedule_dates');
     await _tap(tester, 'select_schedule_range');
     await tester.tap(
       find
@@ -228,8 +344,90 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('cancelling a batch picker keeps assignments and selection', (
+    tester,
+  ) async {
+    final h = _h();
+    await tester.pumpWidget(
+      localizedApp(
+        home: Scaffold(
+          body: StudyCalendarPage(store: h.store, settings: h.settings),
+        ),
+      ),
+    );
+    await _tap(tester, 'select_schedule_dates');
+    await _tap(tester, 'schedule_day_2026-10-13');
+    await _tap(tester, 'select_schedule_range');
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.text('已选择 1 个日期'), findsOneWidget);
+    await _tap(tester, 'assign_batch_dates');
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(h.store.dateOverrides, isEmpty);
+    expect(find.text('已选择 1 个日期'), findsOneWidget);
+    expect(find.text('安排已保存'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final locale in ['zh', 'en']) {
+    testWidgets(
+      'failed batch saving retains selection and retry updates feedback $locale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final h = _h();
+        await tester.runAsync(h.store.flush);
+        h.planStorage.failWrites = true;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: const ValueKey('schedule_preview'),
+            child: localizedApp(
+              locale: Locale(locale),
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(320, 844),
+                  textScaler: TextScaler.linear(locale == 'en' ? 1.5 : 1),
+                ),
+                child: StudyHomePage(store: h.store, settings: h.settings),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+        await tester.pumpAndSettle();
+        await _tap(tester, 'select_schedule_dates');
+        await _tap(tester, 'schedule_day_2026-10-13');
+        await _tap(tester, 'assign_batch_dates');
+        await _tap(tester, 'pick_scheme_rest');
+        expect(h.store.hasSaveError, isTrue);
+        final countLabel = locale == 'zh' ? '已选择 1 个日期' : '1 dates selected';
+        final savedLabel = locale == 'zh' ? '安排已保存' : 'Schedule saved';
+        expect(find.text(countLabel), findsOneWidget);
+        expect(find.text(savedLabel), findsNothing);
+        expect(
+          find.byKey(const ValueKey('assign_batch_dates')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+        await _capture(tester, 'schedule_batch_failed_$locale');
+        h.planStorage.failWrites = false;
+        await _tap(tester, 'retry_save');
+        expect(h.store.hasSaveError, isFalse);
+        expect(h.store.hasUnsavedChanges, isFalse);
+        expect(h.planStorage.value, contains('2026-10-13'));
+        expect(find.text(savedLabel), findsOneWidget);
+        expect(find.text(countLabel), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets(
-    'narrow date preview assigns a scheme without scrolling to month end',
+    'narrow previews are read only and batch actions stay visible while scrolling',
     (tester) async {
       tester.view.physicalSize = const Size(320, 844);
       tester.view.devicePixelRatio = 1;
@@ -238,17 +436,45 @@ void main() {
       final h = _h();
       final scheme = h.store.addScheme('周末');
       await tester.pumpWidget(
-        localizedApp(
-          home: Scaffold(
-            body: StudyCalendarPage(store: h.store, settings: h.settings),
+        RepaintBoundary(
+          key: const ValueKey('schedule_preview'),
+          child: localizedApp(
+            home: Scaffold(
+              body: StudyCalendarPage(store: h.store, settings: h.settings),
+            ),
           ),
         ),
       );
       await _tap(tester, 'schedule_day_2026-10-13');
-      expect(find.byKey(const ValueKey('preview_assign_day')), findsOneWidget);
-      await _tap(tester, 'preview_assign_day');
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byKey(const ValueKey('preview_assign_day')), findsNothing);
+      expect(find.text('编辑任务'), findsNothing);
+      expect(find.text('分配方案'), findsNothing);
+      expect(h.store.dateOverrides, isEmpty);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      await _tap(tester, 'select_schedule_dates');
+      await _tap(tester, 'schedule_day_2026-10-13');
+      final actions = find.byKey(const ValueKey('schedule_batch_actions'));
+      final originalRect = tester.getRect(actions);
+      await _tap(tester, 'schedule_day_2026-10-31');
+      await _tap(tester, 'schedule_day_2026-10-31');
+      expect(tester.getRect(actions), originalRect);
+      expect(
+        find.byKey(const ValueKey('assign_batch_dates')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('select_schedule_dates')).hitTestable(),
+        findsOneWidget,
+      );
+      await _capture(tester, 'schedule_batch_narrow');
+      await tester.tap(find.byKey(const ValueKey('assign_batch_dates')));
+      await tester.pumpAndSettle();
       await _tap(tester, 'pick_scheme_${scheme.id}');
       expect(h.store.schemeIdOn(DateTime(2026, 10, 13)), scheme.id);
+      expect(h.store.dateOverrides.length, 1);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -413,21 +639,20 @@ void main() {
                   child: localizedApp(
                     locale: Locale(locale),
                     brightness: brightness,
-                    home: Scaffold(
-                      body: MediaQuery(
-                        data: MediaQueryData(
-                          size: Size(width, 844),
-                          textScaler: TextScaler.linear(scale),
-                        ),
-                        child: StudyCalendarPage(
-                          store: h.store,
-                          settings: h.settings,
-                        ),
+                    home: MediaQuery(
+                      data: MediaQueryData(
+                        size: Size(width, 844),
+                        textScaler: TextScaler.linear(scale),
+                      ),
+                      child: StudyHomePage(
+                        store: h.store,
+                        settings: h.settings,
                       ),
                     ),
                   ),
                 ),
               );
+              await tester.tap(find.byIcon(Icons.calendar_month_outlined));
               await tester.pumpAndSettle();
               expect(tester.takeException(), isNull);
               await _capture(
@@ -453,6 +678,21 @@ void main() {
                 findsNothing,
               );
               expect(tester.takeException(), isNull);
+              if (find.byType(BottomSheet).evaluate().isNotEmpty) {
+                await tester.tapAt(const Offset(10, 10));
+                await tester.pumpAndSettle();
+              }
+              await _tap(tester, 'select_schedule_dates');
+              await _tap(tester, 'schedule_day_2026-10-13');
+              expect(
+                find.byKey(const ValueKey('assign_batch_dates')).hitTestable(),
+                findsOneWidget,
+              );
+              expect(tester.takeException(), isNull);
+              await _capture(
+                tester,
+                'schedule_batch_${width.toInt()}_${locale}_${brightness.name}_$scale',
+              );
               await tester.pumpWidget(const SizedBox());
             },
           );

@@ -10,8 +10,6 @@ import '../utils/study_history.dart';
 import '../widgets/app_section_card.dart';
 import '../widgets/save_retry_banner.dart';
 import '../widgets/study_scheme_picker.dart';
-import 'plan_management_page.dart';
-import 'scheme_management_page.dart';
 import 'weekly_schedule_page.dart';
 
 class StudyCalendarPage extends StatefulWidget {
@@ -32,6 +30,7 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
   final Set<DateTime> _selected = {};
   bool _selecting = false;
   bool _busy = false;
+  bool _showSaveResult = false;
   List<DateTime> get _editableSelection =>
       _selected.where((d) => !d.isBefore(widget.store.studyDate)).toList();
 
@@ -76,7 +75,7 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: _details(inSheet: true),
+            child: _details(),
           ),
         ),
       );
@@ -85,21 +84,14 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
 
   Future<void> _saveChange(VoidCallback change) async {
     if (_busy || widget.store.isReplacing) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _showSaveResult = false;
+    });
     try {
       change();
-      final saved = await widget.store.flush();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              saved
-                  ? AppLocalizations.of(context)!.scheduleSaved
-                  : AppLocalizations.of(context)!.dataSaveFailed,
-            ),
-          ),
-        );
-      }
+      await widget.store.flush();
+      if (mounted) setState(() => _showSaveResult = true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -125,6 +117,7 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
   }
 
   Future<void> _range() async {
+    if (_busy || widget.store.isReplacing) return;
     final range = await showDateRangePicker(
       context: context,
       firstDate: widget.store.studyDate,
@@ -132,7 +125,7 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
       lastDate: DateTime(2100, 12, 31),
       helpText: AppLocalizations.of(context)!.selectDateRange,
     );
-    if (range == null || !mounted) return;
+    if (range == null || !mounted || widget.store.isReplacing) return;
     setState(() {
       _selected.clear();
       for (
@@ -295,11 +288,7 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
         : () => _chooseDay(day),
   );
 
-  Widget _details({bool inSheet = false}) {
-    void closePreview() {
-      if (inSheet) Navigator.of(context).pop();
-    }
-
+  Widget _details() {
     final l10n = AppLocalizations.of(context)!;
     final past = _day.isBefore(widget.store.studyDate);
     final scheme = widget.store.schemeById(widget.store.schemeIdOn(_day));
@@ -335,57 +324,6 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
                   : l10n.weeklyDefault,
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  key: ValueKey(
-                    inSheet ? 'preview_assign_day' : 'assign_selected_day',
-                  ),
-                  onPressed: _busy || widget.store.isReplacing
-                      ? null
-                      : () {
-                          closePreview();
-                          _assign([_day]);
-                        },
-                  child: Text(l10n.assignScheme),
-                ),
-                if (widget.store.dateOverrides.containsKey(studyDayKey(_day)))
-                  OutlinedButton(
-                    key: ValueKey(
-                      inSheet ? 'preview_restore_day' : 'restore_selected_day',
-                    ),
-                    onPressed: _busy || widget.store.isReplacing
-                        ? null
-                        : () {
-                            closePreview();
-                            _saveChange(
-                              () => widget.store.restoreWeeklyDates([_day]),
-                            );
-                          },
-                    child: Text(l10n.restoreWeeklySchedule),
-                  ),
-                if (scheme != null)
-                  TextButton(
-                    onPressed: _busy || widget.store.isReplacing
-                        ? null
-                        : () {
-                            closePreview();
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => PlanManagementPage(
-                                  store: widget.store,
-                                  settings: widget.settings,
-                                  schemeId: scheme.id,
-                                ),
-                              ),
-                            );
-                          },
-                    child: Text(l10n.viewSchemeTasks),
-                  ),
-              ],
-            ),
             if (scheme == null) Text(l10n.restDayHint),
             for (final task in tasks)
               ListTile(
@@ -414,147 +352,200 @@ class _StudyCalendarPageState extends State<StudyCalendarPage> {
     );
   }
 
+  Widget _batchActions(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final dates = _editableSelection;
+    final disabled = _busy || widget.store.isReplacing;
+    final saved = !widget.store.hasUnsavedChanges && !widget.store.hasLoadError;
+    return Material(
+      key: const ValueKey('schedule_batch_actions'),
+      elevation: 2,
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.selectedDateCount(dates.length)),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('select_schedule_range'),
+                    onPressed: disabled ? null : _range,
+                    icon: const Icon(Icons.date_range_outlined),
+                    label: Text(l10n.selectDateRange),
+                  ),
+                  TextButton(
+                    key: const ValueKey('clear_schedule_selection'),
+                    onPressed: disabled || _selected.isEmpty
+                        ? null
+                        : () => setState(_selected.clear),
+                    child: Text(l10n.clearSelection),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    key: const ValueKey('assign_batch_dates'),
+                    onPressed: disabled || dates.isEmpty
+                        ? null
+                        : () => _assign(dates),
+                    child: Text(l10n.assignScheme),
+                  ),
+                  OutlinedButton(
+                    key: const ValueKey('restore_batch_dates'),
+                    onPressed: disabled || dates.isEmpty
+                        ? null
+                        : () => _saveChange(
+                            () => widget.store.restoreWeeklyDates(
+                              _editableSelection,
+                            ),
+                          ),
+                    child: Text(l10n.restoreWeeklySchedule),
+                  ),
+                ],
+              ),
+              if (_showSaveResult)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      saved ? l10n.scheduleSaved : l10n.dataSaveFailed,
+                      style: TextStyle(
+                        color: saved
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return AnimatedBuilder(
       animation: Listenable.merge([widget.store, widget.settings]),
-      builder: (context, _) => ListView(
-        key: const PageStorageKey('schedule_scroll'),
-        padding: const EdgeInsets.all(16),
+      builder: (context, _) => Column(
         children: [
-          SaveRetryBanner(
-            store: widget.store,
-            settings: widget.settings,
-            enabled: !_busy,
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                key: const ValueKey('manage_schemes'),
-                onPressed: _busy || widget.store.isReplacing
-                    ? null
-                    : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => SchemeManagementPage(
-                            store: widget.store,
-                            settings: widget.settings,
-                          ),
-                        ),
-                      ),
-                icon: const Icon(Icons.layers_outlined),
-                label: Text(l10n.manageSchemes),
-              ),
-              OutlinedButton.icon(
-                key: const ValueKey('weekly_schedule'),
-                onPressed: _busy || widget.store.isReplacing
-                    ? null
-                    : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => WeeklySchedulePage(
-                            store: widget.store,
-                            settings: widget.settings,
-                          ),
-                        ),
-                      ),
-                icon: const Icon(Icons.repeat),
-                label: Text(l10n.weeklySchedule),
-              ),
-              TextButton(
-                key: const ValueKey('select_schedule_dates'),
-                onPressed: _busy
-                    ? null
-                    : () => setState(() {
-                        _selecting = !_selecting;
-                        _selected.clear();
-                      }),
-                child: Text(_selecting ? l10n.done : l10n.selectDates),
-              ),
-              TextButton(
-                key: const ValueKey('select_schedule_range'),
-                onPressed: _busy ? null : _range,
-                child: Text(l10n.selectDateRange),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              IconButton(
-                tooltip: MaterialLocalizations.of(context).previousMonthTooltip,
-                onPressed: _month.year == 1970 && _month.month == 1
-                    ? null
-                    : () => setState(
-                        () => _month = DateTime.utc(
-                          _month.year,
-                          _month.month - 1,
-                        ),
-                      ),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: _jumpMonth,
-                  child: Text(DateFormat.yMMMM(l10n.localeName).format(_month)),
-                ),
-              ),
-              IconButton(
-                tooltip: MaterialLocalizations.of(context).nextMonthTooltip,
-                onPressed: _month.year == 2100 && _month.month == 12
-                    ? null
-                    : () => setState(
-                        () => _month = DateTime.utc(
-                          _month.year,
-                          _month.month + 1,
-                        ),
-                      ),
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          if (_selecting) ...[
-            Text(l10n.selectedDateCount(_editableSelection.length)),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                FilledButton(
-                  key: const ValueKey('assign_batch_dates'),
-                  onPressed:
-                      _busy ||
-                          _editableSelection.isEmpty ||
-                          widget.store.isReplacing
-                      ? null
-                      : () => _assign(_editableSelection),
-                  child: Text(l10n.assignScheme),
-                ),
-                OutlinedButton(
-                  key: const ValueKey('restore_batch_dates'),
-                  onPressed:
-                      _busy ||
-                          _editableSelection.isEmpty ||
-                          widget.store.isReplacing
-                      ? null
-                      : () => _saveChange(
-                          () => widget.store.restoreWeeklyDates(
-                            _editableSelection,
-                          ),
-                        ),
-                  child: Text(l10n.restoreWeeklySchedule),
-                ),
-                TextButton(
-                  onPressed: _busy ? null : () => setState(_selected.clear),
-                  child: Text(l10n.clearSelection),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      key: const ValueKey('select_schedule_dates'),
+                      onPressed: _busy || widget.store.isReplacing
+                          ? null
+                          : () => setState(() {
+                              _selecting = !_selecting;
+                              _selected.clear();
+                              _showSaveResult = false;
+                            }),
+                      icon: Icon(
+                        _selecting ? Icons.check : Icons.checklist_rounded,
+                      ),
+                      label: Text(_selecting ? l10n.done : l10n.bulkSchedule),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('weekly_schedule'),
+                      onPressed: _busy || widget.store.isReplacing
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => WeeklySchedulePage(
+                                  store: widget.store,
+                                  settings: widget.settings,
+                                ),
+                              ),
+                            ),
+                      icon: const Icon(Icons.repeat),
+                      label: Text(l10n.weeklySchedule),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-          ],
-          _calendar(context),
-          const SizedBox(height: 20),
-          _details(),
+          ),
+          Expanded(
+            child: ListView(
+              key: const PageStorageKey('schedule_scroll'),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                SaveRetryBanner(
+                  store: widget.store,
+                  settings: widget.settings,
+                  enabled: !_busy,
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      key: const ValueKey('schedule_previous_month'),
+                      tooltip: MaterialLocalizations.of(context)
+                          .previousMonthTooltip,
+                      onPressed: _month.year == 1970 && _month.month == 1
+                          ? null
+                          : () => setState(
+                              () => _month = DateTime.utc(
+                                _month.year,
+                                _month.month - 1,
+                              ),
+                            ),
+                      icon: const Icon(Icons.chevron_left),
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: _jumpMonth,
+                        child: Text(
+                          DateFormat.yMMMM(l10n.localeName).format(_month),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      key: const ValueKey('schedule_next_month'),
+                      tooltip: MaterialLocalizations.of(context)
+                          .nextMonthTooltip,
+                      onPressed: _month.year == 2100 && _month.month == 12
+                          ? null
+                          : () => setState(
+                              () => _month = DateTime.utc(
+                                _month.year,
+                                _month.month + 1,
+                              ),
+                            ),
+                      icon: const Icon(Icons.chevron_right),
+                    ),
+                  ],
+                ),
+                if (_selecting)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(l10n.selectDates),
+                  ),
+                _calendar(context),
+                if (!_selecting) ...[const SizedBox(height: 20), _details()],
+              ],
+            ),
+          ),
+          if (_selecting) _batchActions(context),
         ],
       ),
     );

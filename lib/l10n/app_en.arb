@@ -561,6 +561,7 @@
   "weeklyDefault": "From weekly schedule",
   "restoreWeeklySchedule": "Use weekly schedule",
   "selectDates": "Select dates",
+  "bulkSchedule": "Bulk manage dates",
   "selectDateRange": "Select a date range",
   "selectedDateCount": "{count} dates selected",
   "@selectedDateCount": {"placeholders": {"count": {"type": "int"}}},

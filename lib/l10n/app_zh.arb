@@ -561,6 +561,7 @@
   "weeklyDefault": "按每周安排",
   "restoreWeeklySchedule": "恢复每周安排",
   "selectDates": "选择多个日期",
+  "bulkSchedule": "批量管理",
   "selectDateRange": "选择日期区间",
   "selectedDateCount": "已选择 {count} 个日期",
   "@selectedDateCount": {"placeholders": {"count": {"type": "int"}}},

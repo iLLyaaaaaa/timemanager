@@ -159,7 +159,7 @@ class StudyBackupService {
     );
     return StudyBackup(
       createdAt: instant,
-      appVersion: '0.2.0+11',
+      appVersion: '0.2.1+12',
       plans: StudyPlanSnapshot(
         plans: plans,
         records: snapshot.records,

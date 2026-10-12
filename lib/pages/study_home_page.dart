@@ -16,7 +16,6 @@ import 'study_calendar_page.dart';
 import 'scheme_management_page.dart';
 import '../theme/app_theme.dart';
 import 'plan_edit_page.dart';
-import 'plan_management_page.dart';
 import 'settings_page.dart';
 import 'study_statistics_page.dart';
 import 'study_timer_page.dart';
@@ -57,13 +56,8 @@ class _StudyHomePageState extends State<StudyHomePage> {
   void _openManagement() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => widget.store.todaySchemeId == null
-            ? SchemeManagementPage(store: widget.store, settings: _settings)
-            : PlanManagementPage(
-                store: widget.store,
-                settings: _settings,
-                schemeId: widget.store.todaySchemeId,
-              ),
+        builder: (_) =>
+            SchemeManagementPage(store: widget.store, settings: _settings),
       ),
     );
   }
@@ -218,12 +212,14 @@ class _StudyHomePageState extends State<StudyHomePage> {
                   if (MediaQuery.sizeOf(context).width < 360 ||
                       MediaQuery.textScalerOf(context).scale(1) > 1.2)
                     IconButton(
+                      key: const ValueKey('home_manage_plans'),
                       onPressed: _openManagement,
                       tooltip: l10n.managePlans,
                       icon: const Icon(Icons.tune_rounded),
                     )
                   else
                     TextButton.icon(
+                      key: const ValueKey('home_manage_plans'),
                       onPressed: _openManagement,
                       icon: const Icon(Icons.tune_rounded),
                       label: Text(AppLocalizations.of(context)!.managePlans),

@@ -32,6 +32,8 @@ void main() {
     await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑任务'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('新增计划'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('plan_name')), 'Python');
@@ -72,6 +74,8 @@ void main() {
     expect(store.plans.single.plannedSeconds, 91);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     final card = find.byKey(ValueKey('plan_card_$id'));
     expect(
       find.descendant(of: card, matching: find.text('今日计划 01:31')),
@@ -96,6 +100,8 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.tap(find.text('管理计划'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑任务'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('删除Python进阶计划'));
     await tester.pumpAndSettle();
@@ -250,6 +256,8 @@ void main() {
     await tester.pumpWidget(localizedApp(home: StudyHomePage(store: store)));
     await tester.tap(find.text('管理计划'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑任务'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('批量管理'));
     await tester.pumpAndSettle();
     expect(
@@ -286,6 +294,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.plans.map((plan) => plan.id), [ids[1]]);
     expect(store.records.single.planId, ids[0]);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('plan_card_${ids[1]}')), findsOneWidget);

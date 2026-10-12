@@ -2252,6 +2252,12 @@ abstract class AppLocalizations {
   /// **'Select dates'**
   String get selectDates;
 
+  /// No description provided for @bulkSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulk manage dates'**
+  String get bulkSchedule;
+
   /// No description provided for @selectDateRange.
   ///
   /// In en, this message translates to:
